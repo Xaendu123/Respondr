@@ -12,12 +12,45 @@ export interface SignUpData {
   email: string;
   password: string;
   displayName: string;
+  organization?: string;
 }
 
 export interface SignInData {
   email: string;
   password: string;
 }
+
+/**
+ * Check if an email address is already registered
+ * Note: This checks the profiles table. If RLS blocks anonymous access,
+ * this will return false (safe fallback - user will see error on signup instead)
+ */
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email.toLowerCase().trim())
+      .limit(1)
+      .maybeSingle();
+
+    // If RLS blocks access, error will be thrown and caught below
+    if (error) {
+      // If it's a permission error, we can't check - return false (safe default)
+      if (error.code === 'PGRST301' || error.message.includes('permission')) {
+        return false; // Can't check due to RLS - will show error on signup instead
+      }
+      throw error;
+    }
+
+    return !!data; // Returns true if email exists, false otherwise
+  } catch (error) {
+    // If we can't check (RLS blocks it), return false
+    // The signup will fail with a proper error message instead
+    console.warn('Could not check email existence:', error);
+    return false;
+  }
+};
 
 /**
  * Sign up a new user
@@ -27,28 +60,59 @@ export const signUp = async (data: SignUpData): Promise<UserProfile> => {
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: data.email,
     password: data.password,
+    options: {
+      data: {
+        display_name: data.displayName,
+      },
+    },
   });
 
   if (authError) throw authError;
   if (!authData.user) throw new Error('User creation failed');
 
-  // 2. Create profile
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      id: authData.user.id,
-      email: data.email,
-      display_name: data.displayName,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  // 2. Wait for profile creation (trigger handles it)
+  let profile = await waitForProfileCreation(authData.user.id);
+  
+  // 3. Update profile with organization if provided
+  if (data.organization && profile) {
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        organization: data.organization.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', authData.user.id)
+      .select()
+      .single();
+    
+    if (!updateError && updatedProfile) {
+      profile = updatedProfile;
+    }
+  }
 
-  if (profileError) throw profileError;
+  if (!profile) throw new Error('Profile not found after registration');
 
   return mapProfileToUserProfile(profile);
 };
+
+/**
+ * Helper to wait for profile creation after signup (due to trigger)
+ */
+async function waitForProfileCreation(userId: string, retries = 5, delay = 1000): Promise<any | null> {
+  for (let i = 0; i < retries; i++) {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profile && !error) {
+      return profile;
+    }
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  return null;
+}
 
 /**
  * Sign in an existing user

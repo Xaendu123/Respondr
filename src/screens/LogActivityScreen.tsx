@@ -17,6 +17,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { ActivityType } from '../types';
+import { hapticSelect, hapticSuccess } from '../utils/haptics';
 
 type DurationUnit = 'minutes' | 'hours' | 'days';
 
@@ -89,6 +90,7 @@ export function LogActivityScreen() {
         tags: category ? [category] : undefined,
       });
       
+      hapticSuccess();
       Alert.alert(
         t('common.success'),
         t('activity.saveSuccess'),
@@ -239,7 +241,10 @@ export function LogActivityScreen() {
                   </View>
                   <Switch
                     value={falseAlarm}
-                    onValueChange={setFalseAlarm}
+                    onValueChange={(value) => {
+                      hapticSelect();
+                      setFalseAlarm(value);
+                    }}
                     trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                     thumbColor={falseAlarm ? theme.colors.onPrimary : theme.colors.surface}
                     ios_backgroundColor={theme.colors.border}

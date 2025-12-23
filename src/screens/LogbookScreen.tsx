@@ -17,6 +17,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { Activity } from '../types';
 import { formatDurationWithTranslation } from '../utils/formatDuration';
+import { hapticError, hapticHeavy, hapticLight, hapticSelect, hapticSuccess, hapticWarning } from '../utils/haptics';
 
 export function LogbookScreen() {
   const { theme } = useTheme();
@@ -58,19 +59,27 @@ export function LogbookScreen() {
   };
   
   const handleDeleteActivity = (activityId: string) => {
+    hapticWarning();
     Alert.alert(
       t('activity.delete'),
       t('activity.deleteConfirm'),
       [
-        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.cancel'), 
+          style: 'cancel',
+          onPress: () => hapticLight(),
+        },
         {
           text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
+              hapticHeavy();
               await deleteActivity(activityId);
+              hapticSuccess();
               Alert.alert(t('common.success'), t('logbook.deleteSuccess'));
             } catch (error) {
+              hapticError();
               Alert.alert(t('common.error'), t('logbook.deleteError'));
             }
           },
@@ -80,6 +89,7 @@ export function LogbookScreen() {
   };
   
   const handleEditActivity = (activity: Activity) => {
+    hapticLight();
     // Navigate to edit screen with activity data
     Alert.alert(
       t('common.comingSoon'),
@@ -88,6 +98,7 @@ export function LogbookScreen() {
   };
   
   const toggleExpand = (activityId: string) => {
+    hapticSelect();
     setExpandedActivityId(expandedActivityId === activityId ? null : activityId);
   };
   
@@ -160,7 +171,10 @@ export function LogbookScreen() {
               styles.filterChip,
               selectedTypeFilter === 'all' && styles.filterChipActive,
             ]}
-            onPress={() => setSelectedTypeFilter('all')}
+            onPress={() => {
+              hapticSelect();
+              setSelectedTypeFilter('all');
+            }}
           >
             <Text
               variant="caption"
@@ -179,7 +193,10 @@ export function LogbookScreen() {
               selectedTypeFilter === 'training' && styles.filterChipActive,
               selectedTypeFilter === 'training' && { backgroundColor: theme.colors.info },
             ]}
-            onPress={() => setSelectedTypeFilter('training')}
+            onPress={() => {
+              hapticSelect();
+              setSelectedTypeFilter('training');
+            }}
           >
             <Ionicons 
               name="book-outline" 
@@ -203,7 +220,10 @@ export function LogbookScreen() {
               selectedTypeFilter === 'exercise' && styles.filterChipActive,
               selectedTypeFilter === 'exercise' && { backgroundColor: theme.colors.warning },
             ]}
-            onPress={() => setSelectedTypeFilter('exercise')}
+            onPress={() => {
+              hapticSelect();
+              setSelectedTypeFilter('exercise');
+            }}
           >
             <Ionicons 
               name="fitness-outline" 
@@ -227,7 +247,10 @@ export function LogbookScreen() {
               selectedTypeFilter === 'operation' && styles.filterChipActive,
               selectedTypeFilter === 'operation' && { backgroundColor: theme.colors.error },
             ]}
-            onPress={() => setSelectedTypeFilter('operation')}
+            onPress={() => {
+              hapticSelect();
+              setSelectedTypeFilter('operation');
+            }}
           >
             <Ionicons 
               name="flash-outline" 
@@ -298,6 +321,7 @@ export function LogbookScreen() {
               variant="outline"
               onPress={() => {
                 setSearchQuery('');
+                hapticLight();
                 setSelectedTypeFilter('all');
               }}
               style={styles.clearFiltersButton}

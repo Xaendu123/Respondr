@@ -69,6 +69,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   displayName: string;
+  organization?: string;
   unitId?: string;
 }
 

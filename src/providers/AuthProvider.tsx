@@ -110,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: request.email,
         password: request.password,
         displayName: request.displayName,
+        organization: request.organization,
       });
       setUser(userProfile);
     } catch (error: any) {

@@ -11,13 +11,15 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Keyboard, Modal, ScrollView, StatusBar, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Avatar, Button, Card, Input, Text } from '../components/ui';
+import { Autocomplete, Avatar, Button, Card, Input, Text } from '../components/ui';
 import { supabase } from '../config/supabase';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { updateProfile } from '../services/supabase/authService';
+import { searchOrganizations } from '../services/supabase/organizationsService';
+import { hapticSuccess } from '../utils/haptics';
 
 export function ProfileScreen() {
   const { theme } = useTheme();
@@ -37,7 +39,47 @@ export function ProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.avatar);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [organizations, setOrganizations] = useState<string[]>([]);
+  const organizationSearchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   
+  // Handle organization search
+  const handleOrganizationChange = async (text: string) => {
+    setOrganization(text);
+    
+    // Clear previous timeout
+    if (organizationSearchTimeoutRef.current) {
+      clearTimeout(organizationSearchTimeoutRef.current);
+    }
+    
+    if (text.trim().length >= 2) {
+      // Debounce organization search
+      organizationSearchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchOrganizations(text.trim());
+          setOrganizations(results);
+        } catch (error) {
+          console.warn('Could not search organizations:', error);
+          setOrganizations([]);
+        }
+      }, 300);
+    } else {
+      setOrganizations([]);
+    }
+  };
+
+  const handleOrganizationSelect = (selectedOrg: string) => {
+    setOrganization(selectedOrg);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (organizationSearchTimeoutRef.current) {
+        clearTimeout(organizationSearchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Update form when user changes
   useEffect(() => {
     if (user) {
@@ -176,6 +218,7 @@ export function ProfileScreen() {
 
       // Refresh user data
       await refreshUser();
+      hapticSuccess();
 
       Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
     } catch (error) {
@@ -526,11 +569,14 @@ export function ProfileScreen() {
               placeholder={t('profile.displayNamePlaceholder')}
             />
             
-            <Input
+            <Autocomplete
               label={t('profile.organization')}
               value={organization}
-              onChangeText={setOrganization}
+              onChangeText={handleOrganizationChange}
+              onSelect={handleOrganizationSelect}
               placeholder={t('profile.organizationPlaceholder')}
+              data={organizations}
+              minCharsToSearch={2}
             />
             
             <Input

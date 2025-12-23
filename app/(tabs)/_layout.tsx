@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useTranslation } from "../../src/hooks/useTranslation";
 import { useTheme } from "../../src/providers/ThemeProvider";
+import { hapticLight } from "../../src/utils/haptics";
 
 export default function TabsLayout() {
   const { theme } = useTheme();
@@ -23,6 +24,12 @@ export default function TabsLayout() {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
+        },
+      }}
+      screenListeners={{
+        tabPress: () => {
+          hapticLight();
+          return true;
         },
       }}
     >

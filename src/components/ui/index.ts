@@ -4,6 +4,7 @@
  * Central export for all UI components.
  */
 
+export { Autocomplete, type AutocompleteProps } from './Autocomplete';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Button, type ButtonProps, type ButtonVariant } from './Button';
 export { Card, type CardProps } from './Card';

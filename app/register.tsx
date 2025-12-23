@@ -8,12 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { Input, Text } from '../src/components/ui';
+import { Autocomplete, Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { checkEmailExists } from '../src/services/supabase/authService';
+import { searchOrganizations } from '../src/services/supabase/organizationsService';
+import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function RegisterScreen() {
   const { theme } = useTheme();
@@ -25,9 +28,15 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [organization, setOrganization] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [organizations, setOrganizations] = useState<string[]>([]);
+  const [searchingOrganizations, setSearchingOrganizations] = useState(false);
+  const emailCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const organizationSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const styles = createStyles(theme);
   
@@ -40,45 +49,149 @@ export default function RegisterScreen() {
     setEmail(text);
     setEmailTouched(true);
     
+    // Clear previous timeout
+    if (emailCheckTimeoutRef.current) {
+      clearTimeout(emailCheckTimeoutRef.current);
+    }
+    
     if (text.trim().length === 0) {
       setEmailError('');
+      setCheckingEmail(false);
     } else if (!validateEmail(text.trim())) {
       setEmailError(t('auth.invalidEmail'));
+      setCheckingEmail(false);
     } else {
+      // Valid email format - check if it exists (debounced)
       setEmailError('');
+      setCheckingEmail(true);
+      
+      // Debounce the email check (wait 500ms after user stops typing)
+      emailCheckTimeoutRef.current = setTimeout(async () => {
+        try {
+          const exists = await checkEmailExists(text.trim());
+          if (exists) {
+            setEmailError(t('auth.emailAlreadyExists'));
+          } else {
+            setEmailError(''); // Email is available
+          }
+        } catch (error) {
+          // If we can't check (e.g., RLS blocks it), don't show error
+          // The signup will handle it properly
+          console.warn('Could not check email:', error);
+        } finally {
+          setCheckingEmail(false);
+        }
+      }, 500);
     }
   };
+
+  // Handle organization search
+  const handleOrganizationChange = async (text: string) => {
+    setOrganization(text);
+    
+    // Clear previous timeout
+    if (organizationSearchTimeoutRef.current) {
+      clearTimeout(organizationSearchTimeoutRef.current);
+    }
+    
+    if (text.trim().length >= 2) {
+      setSearchingOrganizations(true);
+      // Debounce organization search
+      organizationSearchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchOrganizations(text.trim());
+          setOrganizations(results);
+        } catch (error) {
+          console.warn('Could not search organizations:', error);
+          setOrganizations([]);
+        } finally {
+          setSearchingOrganizations(false);
+        }
+      }, 300);
+    } else {
+      setOrganizations([]);
+      setSearchingOrganizations(false);
+    }
+  };
+
+  const handleOrganizationSelect = (selectedOrg: string) => {
+    setOrganization(selectedOrg);
+  };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+      }
+      if (organizationSearchTimeoutRef.current) {
+        clearTimeout(organizationSearchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   const handleRegister = async () => {
     if (!displayName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
       return;
     }
     
     if (!validateEmail(email.trim())) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
       return;
     }
     
     if (password !== confirmPassword) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.passwordsMustMatch'));
       return;
     }
     
     if (password.length < 6) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.passwordTooShort'));
       return;
     }
     
+    // Check email one more time before submitting
+    if (emailError === t('auth.emailAlreadyExists')) {
+      hapticError();
+      Alert.alert(t('errors.validation'), t('auth.emailAlreadyExists'));
+      return;
+    }
+    
     try {
-      await register({ email: email.trim(), password, displayName: displayName.trim() });
+      await register({ 
+        email: email.trim(), 
+        password, 
+        displayName: displayName.trim(),
+        organization: organization.trim() || undefined,
+      });
+      hapticSuccess();
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      Alert.alert(t('errors.auth'), error.message || t('auth.registrationFailed'));
+      // Check if error is due to existing email
+      const errorMessage = error.message || '';
+      hapticError();
+      if (
+        errorMessage.includes('already registered') ||
+        errorMessage.includes('already exists') ||
+        errorMessage.includes('User already registered') ||
+        error.code === 'signup_disabled' ||
+        error.code === 'email_address_not_authorized'
+      ) {
+        setEmailError(t('auth.emailAlreadyExists'));
+        Alert.alert(t('errors.validation'), t('auth.emailAlreadyExists'));
+      } else {
+        Alert.alert(t('errors.auth'), errorMessage || t('auth.registrationFailed'));
+      }
     }
   };
   
   const handleBackToLogin = () => {
+    hapticLight();
     router.back();
   };
   
@@ -153,13 +266,29 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
                 textContentType="username"
+                editable={!checkingEmail}
               />
-              {emailError && emailTouched && (
+              {checkingEmail && (
+                <Text variant="caption" style={styles.checkingText}>
+                  {t('auth.checkingEmail')}
+                </Text>
+              )}
+              {emailError && emailTouched && !checkingEmail && (
                 <Text variant="caption" style={styles.errorText}>
                   {emailError}
                 </Text>
               )}
             </View>
+            
+            <Autocomplete
+              label={t('auth.organization')}
+              value={organization}
+              onChangeText={handleOrganizationChange}
+              onSelect={handleOrganizationSelect}
+              placeholder={t('auth.organizationPlaceholder')}
+              data={organizations}
+              minCharsToSearch={2}
+            />
             
             <View>
               <Input
@@ -394,6 +523,12 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       color: theme.colors.error,
       marginTop: theme.spacing.xs,
       marginLeft: theme.spacing.xs,
+    },
+    checkingText: {
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.xs,
+      marginLeft: theme.spacing.xs,
+      fontStyle: 'italic',
     },
   });
 }

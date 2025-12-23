@@ -11,6 +11,7 @@
 import React from 'react';
 import { ActivityIndicator, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
+import { hapticLight } from '../../utils/haptics';
 import { Text, TextColor } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -94,12 +95,22 @@ export function Button({
     }
   };
   
+  const handlePress = (e: any) => {
+    if (!disabled && !loading) {
+      hapticLight();
+    }
+    if (props.onPress) {
+      props.onPress(e);
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[getButtonStyle(), style]}
       disabled={disabled || loading}
       activeOpacity={0.7}
       {...props}
+      onPress={handlePress}
     >
       {loading ? (
         <ActivityIndicator 

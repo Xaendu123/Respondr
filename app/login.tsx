@@ -14,6 +14,7 @@ import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function LoginScreen() {
   const { theme } = useTheme();
@@ -49,24 +50,29 @@ export default function LoginScreen() {
   
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
       return;
     }
     
     if (!validateEmail(email.trim())) {
+      hapticError();
       Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
       return;
     }
     
     try {
       await login(email.trim(), password);
+      hapticSuccess();
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
+      hapticError();
       Alert.alert(t('errors.auth'), error.message || t('auth.loginFailed'));
     }
   };
   
   const handleRegister = () => {
+    hapticLight();
     router.push('/register');
   };
   
