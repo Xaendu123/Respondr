@@ -3,23 +3,64 @@
     "name": "respondr",
     "slug": "respondr",
     "version": "1.0.0",
+    "description": "Activity logging and social platform for first responders",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "respondr",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "deploymentTarget": "15.1",
+      "bundleIdentifier": "ch.respondr.app",
+      "buildNumber": "1",
+      "usesNonExemptEncryption": false,
+      "associatedDomains": [
+        "webcredentials:respondr.ch"
+      ],
+      "infoPlist": {
+        "CFBundleDisplayName": "Respondr",
+        "CFBundleName": "Respondr",
+        "NSCameraUsageDescription": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen",
+        "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen"
+      }
     },
     "android": {
+      "package": "ch.respondr.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "respondr.ch"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
+      ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "minSdkVersion": 23
     },
     "web": {
       "output": "static",
@@ -38,7 +79,19 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen",
+          "cameraPermission": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen"
+        }
+      ],
+      [
+        "./plugins/withLocalizedNativePermissions",
+        null
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

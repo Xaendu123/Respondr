@@ -1,50 +1,104 @@
-# Welcome to your Expo app 👋
+# Respondr
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A production-ready React Native application for social activity and logging for first responders, built with Clean Architecture principles.
 
-## Get started
+## Architecture
 
-1. Install dependencies
+This app follows strict architecture rules:
 
-   ```bash
-   npm install
-   ```
+- ✅ **Centralized Configuration**: All values (colors, spacing, fonts) in config files
+- ✅ **Design Tokens**: Semantic token system for styling
+- ✅ **Theme System**: Light/dark/system themes with runtime switching
+- ✅ **White-Label Ready**: Complete brand configuration system
+- ✅ **Internationalization**: Full i18n support (German default, English included)
+- ✅ **Clean Architecture**: Separation of UI and business logic
+- ✅ **Type Safety**: Full TypeScript support
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick Start
 
 ```bash
-npm run reset-project
+# Install dependencies
+npm install
+
+# Start development server
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Project Structure
 
-## Learn more
+```
+src/
+├── config/           # Centralized configuration
+│   ├── tokens.ts     # Design tokens
+│   ├── theme.ts      # Theme system
+│   └── brand.ts      # Brand configuration
+├── types/            # TypeScript types
+├── i18n/             # Internationalization
+├── providers/        # React Context providers
+├── hooks/            # Business logic hooks
+├── components/       # UI components
+└── screens/          # Screen components
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Documentation
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for comprehensive documentation on:
 
-## Join the community
+- Architecture principles
+- Design tokens system
+- Theme system (how to add themes, change colors)
+- Brand configuration (how to white-label)
+- Internationalization (how to add languages)
+- Component architecture
+- Business logic separation
 
-Join our community of developers creating universal apps.
+## Key Features
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Theme System
+- Light/dark/system themes
+- Runtime theme switching
+- Persistent theme preference
+- Semantic color tokens
+
+### Internationalization
+- German (default) and English included
+- Easy to add new languages
+- All text via translation keys
+
+### Brand Configuration
+- White-label ready
+- Centralized brand config
+- Logo, colors, fonts configurable
+- Zero component changes needed for rebranding
+
+### UI Components
+- Themed base components (Text, Button, Card, Avatar)
+- All components use design tokens
+- Consistent styling throughout
+
+## Development
+
+### Adding a New Screen
+
+1. Create screen in `src/screens/`
+2. Use `useTheme()` for styling
+3. Use `useTranslation()` for text
+4. Separate business logic into hooks
+
+### Adding a New Component
+
+1. Create component in `src/components/ui/`
+2. Use theme tokens (no hardcoded values)
+3. Export from `src/components/ui/index.ts`
+
+### Adding a New Language
+
+1. Create `src/i18n/locales/[locale].json`
+2. Register in `src/i18n/config.ts`
+3. No component changes needed
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed instructions.
+
+## License
+
+Private
