@@ -32,7 +32,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 EOF
 
 # 3. Deploy database schema
-# Copy supabase/schema_enhanced.sql to Supabase SQL Editor and run
+# Copy supabase/schema/schema_enhanced.sql to Supabase SQL Editor and run
 
 # 4. Start app
 npm start

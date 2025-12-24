@@ -35,7 +35,7 @@ This is the **complete, production-ready** setup guide for Respondr with Supabas
 
 1. In Supabase Dashboard → **SQL Editor**
 2. Click **New query**
-3. Open `supabase/schema_enhanced.sql` from your project
+3. Open `supabase/schema/schema_enhanced.sql` from your project
 4. Copy **entire file** and paste into SQL Editor
 5. Click **Run** (⏵)
 6. Wait ~30 seconds

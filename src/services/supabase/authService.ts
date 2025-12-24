@@ -361,6 +361,8 @@ export async function requestAccountDeletion(reason?: string): Promise<void> {
   }
 
   // Create deletion request
+  // Note: Database trigger will automatically execute anonymize_user_data()
+  // when this record is inserted (see supabase/scripts/automate_deletion.sql)
   const { error } = await supabase
     .from('data_deletion_requests')
     .insert({
@@ -374,9 +376,9 @@ export async function requestAccountDeletion(reason?: string): Promise<void> {
     throw new Error(error.message);
   }
 
-  // Note: Actual deletion should be processed by admin or automated job
-  // For immediate deletion (use with caution):
-  // await supabase.rpc('anonymize_user_data', { user_uuid: user.id });
+  // Sign out the user after deletion request is created
+  // The database trigger handles anonymization automatically
+  await supabase.auth.signOut();
 }
 
 /**

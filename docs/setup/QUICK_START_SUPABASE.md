@@ -12,7 +12,7 @@
 ### 2. Run Database Schema (1 min)
 1. In Supabase dashboard → **SQL Editor**
 2. Click "New query"
-3. Copy entire contents of `supabase/schema.sql`
+3. Copy entire contents of `supabase/schema/schema_enhanced.sql`
 4. Paste and click "Run"
 5. Verify tables appear under **Database** → **Tables**
 
@@ -47,8 +47,8 @@ npm start
 Your app is now connected to Supabase!
 
 📖 For detailed setup and troubleshooting, see:
-- **SUPABASE_SETUP.md** - Complete setup guide
-- **SUPABASE_INTEGRATION_SUMMARY.md** - Technical details
+- **SUPABASE_COMPLETE_SETUP.md** - Complete setup guide (in `docs/setup/`)
+- **README_SUPABASE.md** - Supabase integration overview (in `docs/setup/`)
 
 ## 🎯 Verify Setup Works
 

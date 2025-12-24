@@ -42,7 +42,7 @@ src/
 
 ## Documentation
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for comprehensive documentation on:
+See [docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md) for comprehensive documentation on:
 
 - Architecture principles
 - Design tokens system
@@ -97,7 +97,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for comprehensive documentation on:
 2. Register in `src/i18n/config.ts`
 3. No component changes needed
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed instructions.
+See [docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md) for detailed instructions.
 
 ## License
 
