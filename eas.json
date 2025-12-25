@@ -4,7 +4,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "buildConfiguration": "Debug"
+        "buildConfiguration": "Debug",
+        "autoIncrement": false
       },
       "android": {
         "buildType": "apk",
@@ -15,7 +16,8 @@
       "distribution": "internal",
       "ios": {
         "simulator": false,
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "autoIncrement": false
       },
       "android": {
         "buildType": "apk"
@@ -28,7 +30,8 @@
       },
       "ios": {
         "buildConfiguration": "Release",
-        "simulator": false
+        "simulator": false,
+        "autoIncrement": true
       },
       "android": {
         "buildType": "app-bundle"
@@ -38,12 +41,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "info@respondr.ch",
-        "ascAppId": null,
-        "appleTeamId": null
+        "appleId": "alex_bugnon@bluewin.ch"
       },
       "android": {
-        "serviceAccountKeyPath": null,
         "track": "internal"
       }
     }
