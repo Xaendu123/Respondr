@@ -11,7 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "deploymentTarget": "15.1",
+      "deploymentTarget": "15.4",
       "bundleIdentifier": "ch.respondr.app",
       "buildNumber": "1",
       "usesNonExemptEncryption": false,
@@ -22,7 +22,8 @@
         "CFBundleDisplayName": "Respondr",
         "CFBundleName": "Respondr",
         "NSCameraUsageDescription": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen",
-        "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen"
+        "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

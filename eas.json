@@ -27,7 +27,8 @@
         "NODE_ENV": "production"
       },
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "simulator": false
       },
       "android": {
         "buildType": "app-bundle"
