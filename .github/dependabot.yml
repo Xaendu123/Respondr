@@ -1,0 +1,9 @@
+﻿version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # Include all dependencies including react-native
+    # React Native is a core dependency managed alongside Expo SDK
