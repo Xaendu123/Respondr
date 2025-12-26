@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import 'react-native-gesture-handler'; // Must be imported first
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/providers/AuthProvider";
 
