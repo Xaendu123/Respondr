@@ -247,6 +247,7 @@
     "passwordResetSuccess": "Password Reset Successful",
     "passwordResetSuccessMessage": "Your password has been successfully reset. You can now sign in with your new password.",
     "invalidResetLink": "Invalid or expired reset link. Please request a new password reset.",
+    "confirmationEmailInvalid": "Invalid or expired confirmation link. Please request a new confirmation email.",
     "signIn": "Sign in",
     "signUp": "Sign up",
     "welcomeBack": "Welcome back",

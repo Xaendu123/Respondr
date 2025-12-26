@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Alert } from "react-native";
 import 'react-native-gesture-handler'; // Must be imported first
 import { supabase } from "../src/config/supabase";
+import { useTranslation } from "../src/hooks/useTranslation";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/providers/AuthProvider";
 import { handleOAuthCallback } from "../src/services/supabase/authService";
@@ -12,6 +13,7 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Handle deep links for OAuth callbacks and password reset
   useEffect(() => {
@@ -99,19 +101,22 @@ function RootLayoutNav() {
           });
           
           if (accessToken && refreshToken) {
-            // Set the session using the tokens from the URL hash
-            console.log('=== SETTING SESSION FROM TOKENS ===');
+            // Method 1: Set session using tokens from URL hash (preferred)
+            console.log('=== SETTING SESSION FROM TOKENS (HASH) ===');
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
+              access_token: decodeURIComponent(accessToken),
+              refresh_token: decodeURIComponent(refreshToken),
             });
             
             if (sessionError) {
               console.error('=== PASSWORD RESET SESSION ERROR ===', sessionError);
-              Alert.alert('Error', 'Invalid or expired reset link. Please request a new password reset.');
+              Alert.alert(
+                t('errors.auth'),
+                t('auth.invalidResetLink')
+              );
               router.replace('/login');
             } else if (sessionData?.session) {
-              console.log('=== SESSION SET SUCCESSFULLY ===');
+              console.log('=== SESSION SET SUCCESSFULLY (PASSWORD RESET) ===');
               // Session set successfully - navigate to reset password screen
               await refreshUser();
               router.replace({

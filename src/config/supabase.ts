@@ -36,6 +36,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 /**
  * Supabase client instance with AsyncStorage for session persistence
  * Uses placeholder values if env vars are missing (for Expo Go development)
+ * 
+ * Configuration:
+ * - flowType: 'pkce' - Uses PKCE flow for better security on mobile
+ * - detectSessionInUrl: false - We handle URL detection manually for better control
+ * - storage: AsyncStorage - Persists sessions in device storage
  */
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
@@ -45,7 +50,8 @@ export const supabase = createClient(
       storage: AsyncStorage,
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: false, // We handle this manually in _layout.tsx
+      flowType: 'pkce', // Use PKCE flow for mobile security (recommended)
     },
   }
 );
