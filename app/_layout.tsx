@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { Alert } from "react-native";
 import 'react-native-gesture-handler'; // Must be imported first
 import { supabase } from "../src/config/supabase";
 import { AppProviders } from "../src/providers/AppProviders";
@@ -74,38 +75,162 @@ function RootLayoutNav() {
         }
       }
       // Check if this is a password reset link
-      else if (url.includes('reset-password')) {
-        handled = true;
-        // Extract token and hash from URL
-        const parsed = Linking.parse(url);
-        // Navigate to reset password screen with the URL (contains token)
-        router.replace({
-          pathname: '/reset-password',
-          params: { url },
-        });
-      }
-      // Check if this is an email confirmation link
-      else if (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('type=signup')) {
+      else if (url.includes('reset-password') || url.includes('type=recovery')) {
         handled = true;
         try {
-          // Supabase email confirmation links are handled automatically by the auth state listener
-          // The link contains tokens that Supabase will process
-          // Wait a moment for the auth state to update, then refresh and navigate
-          setTimeout(async () => {
-            try {
+          console.log('=== PASSWORD RESET DEEP LINK ===', { url });
+          
+          // Supabase redirects to your app with tokens in the URL hash (fragment)
+          // Format: respondr://reset-password#access_token=...&refresh_token=...&type=recovery
+          const urlObj = new URL(url);
+          
+          // Extract tokens from hash (fragment) - this is where Supabase puts them after redirect
+          const hash = urlObj.hash.substring(1); // Remove the '#' prefix
+          const hashParams = new URLSearchParams(hash);
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          const type = hashParams.get('type') || urlObj.searchParams.get('type');
+          
+          console.log('=== EXTRACTED TOKENS ===', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            type,
+            hashLength: hash.length,
+          });
+          
+          if (accessToken && refreshToken) {
+            // Set the session using the tokens from the URL hash
+            console.log('=== SETTING SESSION FROM TOKENS ===');
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (sessionError) {
+              console.error('=== PASSWORD RESET SESSION ERROR ===', sessionError);
+              Alert.alert('Error', 'Invalid or expired reset link. Please request a new password reset.');
+              router.replace('/login');
+            } else if (sessionData?.session) {
+              console.log('=== SESSION SET SUCCESSFULLY ===');
+              // Session set successfully - navigate to reset password screen
               await refreshUser();
-              // Check if user is now authenticated
-              const { data: sessionData } = await supabase.auth.getSession();
-              if (sessionData?.session) {
-                router.replace('/(tabs)/logbook');
-              } else {
-                router.replace('/login');
-              }
-            } catch (error) {
-              console.error('Error after email confirmation:', error);
+              router.replace({
+                pathname: '/reset-password',
+                params: { url },
+              });
+            } else {
+              console.error('=== NO SESSION AFTER SET ===');
               router.replace('/login');
             }
-          }, 1500);
+          } else {
+            // No tokens in hash - might be the initial verification URL
+            // Check if there's a token in query params that needs to be verified
+            const token = urlObj.searchParams.get('token');
+            
+            if (token && type === 'recovery') {
+              console.log('=== FOUND RECOVERY TOKEN IN QUERY ===', { token: token.substring(0, 20) + '...' });
+              // This is the verification URL - Supabase needs to verify it first
+              // The app should wait for Supabase to redirect with tokens
+              // Or we can try to exchange it
+              Alert.alert(
+                'Processing...',
+                'Please wait while we verify your reset link...'
+              );
+              
+              // Wait a moment for Supabase to process and redirect with tokens
+              setTimeout(async () => {
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session) {
+                  console.log('=== SESSION FOUND AFTER WAIT ===');
+                  await refreshUser();
+                  router.replace({
+                    pathname: '/reset-password',
+                    params: { url },
+                  });
+                } else {
+                  console.error('=== NO SESSION AFTER WAIT ===');
+                  Alert.alert('Error', 'Invalid or expired reset link. Please request a new password reset.');
+                  router.replace('/login');
+                }
+              }, 2000);
+            } else {
+              console.error('=== NO TOKENS FOUND ===', { hasHash: !!hash, hashLength: hash?.length });
+              Alert.alert('Error', 'Invalid reset link format. Please request a new password reset.');
+              router.replace('/login');
+            }
+          }
+        } catch (error) {
+          console.error('=== PASSWORD RESET DEEP LINK ERROR ===', error);
+          Alert.alert('Error', 'Failed to process reset link. Please request a new password reset.');
+          router.replace('/login');
+        }
+      }
+      // Check if this is an email confirmation link
+      else if (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('type=signup') || url.includes('type=email')) {
+        handled = true;
+        try {
+          // Extract token and type from URL
+          const urlObj = new URL(url);
+          const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.hash.match(/token_hash=([^&]+)/)?.[1];
+          const type = urlObj.searchParams.get('type') || urlObj.hash.match(/type=([^&]+)/)?.[1] || 'signup';
+          
+          // Also check for access_token in hash (alternative format)
+          const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1];
+          const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1];
+          
+          if (accessToken && refreshToken) {
+            // Direct session tokens - set session immediately
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: decodeURIComponent(accessToken),
+              refresh_token: decodeURIComponent(refreshToken),
+            });
+            
+            if (sessionError) {
+              console.error('Email confirmation session error:', sessionError);
+              router.replace('/login');
+            } else if (sessionData?.session) {
+              // Email confirmed and user logged in
+              await refreshUser();
+              router.replace('/(tabs)/logbook');
+            } else {
+              router.replace('/login');
+            }
+          } else if (tokenHash) {
+            // Token hash format - verify OTP
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: decodeURIComponent(tokenHash),
+              type: type as any,
+            });
+            
+            if (error) {
+              console.error('Email confirmation OTP error:', error);
+              Alert.alert('Error', 'Invalid or expired confirmation link. Please request a new confirmation email.');
+              router.replace('/login');
+            } else if (data?.session) {
+              // Email confirmed - user is now logged in
+              await refreshUser();
+              router.replace('/(tabs)/logbook');
+            } else {
+              router.replace('/login');
+            }
+          } else {
+            // No tokens found - wait for auth state to update (Supabase might handle it automatically)
+            setTimeout(async () => {
+              try {
+                await refreshUser();
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session) {
+                  router.replace('/(tabs)/logbook');
+                } else {
+                  Alert.alert('Error', 'Could not verify email. Please request a new confirmation email.');
+                  router.replace('/login');
+                }
+              } catch (error) {
+                console.error('Error after email confirmation:', error);
+                router.replace('/login');
+              }
+            }, 1500);
+          }
         } catch (error) {
           console.error('Email confirmation error:', error);
           router.replace('/login');

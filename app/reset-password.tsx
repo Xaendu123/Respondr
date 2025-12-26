@@ -32,13 +32,50 @@ export default function ResetPasswordScreen() {
   
   const styles = createStyles(theme);
   
-  // Extract token from URL if provided via deep link
+  // Extract and set session from URL if provided via deep link
   useEffect(() => {
     if (params.url) {
-      // The URL contains the token, Supabase will handle it
-      console.log('Password reset URL received:', params.url);
+      console.log('=== RESET PASSWORD SCREEN: URL RECEIVED ===', { url: params.url });
+      
+      // Extract tokens from URL hash (fragment)
+      try {
+        const urlObj = new URL(params.url);
+        const hash = urlObj.hash.substring(1); // Remove the '#' prefix
+        const hashParams = new URLSearchParams(hash);
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        console.log('=== EXTRACTED FROM HASH ===', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hashLength: hash.length,
+        });
+        
+        if (accessToken && refreshToken) {
+          // Set the session using tokens from URL hash
+          console.log('=== SETTING SESSION IN RESET SCREEN ===');
+          supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error('=== FAILED TO SET SESSION ===', error);
+              Alert.alert(
+                t('errors.auth'),
+                t('auth.invalidResetLink')
+              );
+            } else if (data?.session) {
+              console.log('=== SESSION SET SUCCESSFULLY IN RESET SCREEN ===');
+            }
+          });
+        } else {
+          console.warn('=== NO TOKENS IN URL HASH ===');
+        }
+      } catch (error) {
+        console.error('=== ERROR PARSING RESET URL ===', error);
+      }
     }
-  }, [params.url]);
+  }, [params.url, t]);
   
   const validatePassword = (pwd: string) => {
     if (pwd.length < 6) {
@@ -96,8 +133,39 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     
     try {
+      // Check if we have a valid session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        // Try to extract tokens from URL if session is missing
+        if (params.url) {
+          try {
+            const urlObj = new URL(params.url);
+            const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1];
+            const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1];
+            
+            if (accessToken && refreshToken) {
+              const { data: newSessionData, error: setSessionError } = await supabase.auth.setSession({
+                access_token: decodeURIComponent(accessToken),
+                refresh_token: decodeURIComponent(refreshToken),
+              });
+              
+              if (setSessionError || !newSessionData?.session) {
+                throw new Error(t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.');
+              }
+            } else {
+              throw new Error(t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.');
+            }
+          } catch (urlError) {
+            throw new Error(t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.');
+          }
+        } else {
+          throw new Error(t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.');
+        }
+      }
+      
       // Update password using Supabase
-      // The session should already be set from the email link
+      // The session should now be set
       const { error } = await supabase.auth.updateUser({
         password: password.trim(),
       });

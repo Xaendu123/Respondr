@@ -246,6 +246,7 @@
     "newPassword": "Neues Passwort",
     "passwordResetSuccess": "Passwort erfolgreich zurückgesetzt",
     "passwordResetSuccessMessage": "Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt mit deinem neuen Passwort anmelden.",
+    "invalidResetLink": "Ungültiger oder abgelaufener Reset-Link. Bitte fordere einen neuen Passwort-Reset an.",
     "signIn": "Anmelden",
     "signUp": "Registrieren",
     "welcomeBack": "Willkommen zurück",
