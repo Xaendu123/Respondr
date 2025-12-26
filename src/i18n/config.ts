@@ -10,7 +10,8 @@
  * 4. The locale will be automatically available
  * 5. No component code changes needed
  * 
- * Default language: German (de)
+ * Default language: English (en)
+ * Device language detection: German if device is German, otherwise English
  * 
  * Usage in components:
  * import { useTranslation } from 'react-i18next';
@@ -39,26 +40,45 @@ async function getInitialLanguage(): Promise<string> {
     console.warn('Failed to load saved language preference:', error);
   }
   
-  // Default to German, or detect from device
+  // Detect from device: German if device is German, otherwise default to English
   const locales = Localization.getLocales();
-  const deviceLanguage = locales?.[0]?.languageCode || 'de';
-  return deviceLanguage === 'de' || deviceLanguage === 'en' ? deviceLanguage : 'de';
+  const deviceLanguage = locales?.[0]?.languageCode || 'en';
+  return deviceLanguage === 'de' ? 'de' : 'en';
 }
 
-// Initialize i18n
+// Initialize i18n (non-blocking - app will load even if this fails)
 const initI18n = async () => {
-  const initialLanguage = await getInitialLanguage();
-  
-  await i18n
-    .use(initReactI18next)
-    .init({
+  try {
+    const initialLanguage = await getInitialLanguage();
+    
+    await i18n
+      .use(initReactI18next)
+      .init({
+        compatibilityJSON: 'v4',
+        resources: {
+          de: { translation: de },
+          en: { translation: en },
+        },
+        lng: initialLanguage,
+        fallbackLng: 'en',
+        interpolation: {
+          escapeValue: false,
+        },
+        react: {
+          useSuspense: false,
+        },
+      });
+  } catch (error) {
+    console.error('Failed to initialize i18n:', error);
+    // Initialize with fallback to prevent app crash
+    i18n.use(initReactI18next).init({
       compatibilityJSON: 'v4',
       resources: {
         de: { translation: de },
         en: { translation: en },
       },
-      lng: initialLanguage,
-      fallbackLng: 'de',
+      lng: 'en',
+      fallbackLng: 'en',
       interpolation: {
         escapeValue: false,
       },
@@ -66,9 +86,13 @@ const initI18n = async () => {
         useSuspense: false,
       },
     });
+  }
 };
 
-initI18n();
+// Initialize asynchronously (don't block app loading)
+initI18n().catch((error) => {
+  console.error('i18n initialization error:', error);
+});
 
 // Helper to change language and persist preference
 export async function changeLanguage(language: string): Promise<void> {

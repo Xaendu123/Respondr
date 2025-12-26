@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Localized permission descriptions - German -->
+    <string name="expo_camera_permission_rationale">Wir benötigen Zugriff auf deine Kamera, um ein Profilbild aufzunehmen</string>
+    <string name="expo_imagepicker_photolibrary_permission_rationale">Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen</string>
+</resources>

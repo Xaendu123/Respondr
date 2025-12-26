@@ -125,9 +125,9 @@ const lightThemeColors: ThemeColors = {
 
 // Dark theme - Modern, clean design matching RESQ aesthetics
 const darkThemeColors: ThemeColors = {
-  primary: '#EF5350', // Lighter red for dark mode
+  primary: '#FF7043', // Orange-red that complements the orange color scheme
   primaryDark: '#C62828', // Deep red
-  primaryLight: '#FF8A80', // Very light red
+  primaryLight: '#FF8A65', // Light orange-red
   onPrimary: '#FFFFFF',
   
   // Gradient colors for headers and accents
@@ -151,7 +151,7 @@ const darkThemeColors: ThemeColors = {
   border: '#333333', // Dark border
   divider: '#2C2C2C', // Dark divider
   
-  error: '#EF5350', // Light red - operations/emergencies
+  error: '#FF7043', // Orange-red - operations/emergencies
   errorBackground: '#3E1F1F',
   success: '#66BB6A', // Light green
   successBackground: '#1F3E1F',
@@ -160,7 +160,7 @@ const darkThemeColors: ThemeColors = {
   info: '#FFD54F', // Light yellow - training/education
   infoBackground: '#3E3A1F',
   
-  pressed: 'rgba(239, 83, 80, 0.12)',
+  pressed: 'rgba(255, 112, 67, 0.12)',
   disabled: '#707070',
   disabledBackground: '#2C2C2C',
 };

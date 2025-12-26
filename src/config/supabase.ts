@@ -16,24 +16,37 @@ import Constants from 'expo-constants';
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+// For Expo Go, allow missing env vars with a warning (they'll be undefined)
+// This prevents the app from crashing during development
 if (!supabaseUrl || !supabaseAnonKey) {
-  // In production builds, this will cause a clear error
-  // In development, it helps identify missing configuration
-  throw new Error(
-    'Missing Supabase environment variables. ' +
-    'Please ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set in your .env file or configured in EAS build secrets.'
-  );
+  if (__DEV__) {
+    console.warn(
+      '⚠️ Missing Supabase environment variables. ' +
+      'Please ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set in your .env file.'
+    );
+  } else {
+    // In production builds, throw an error
+    throw new Error(
+      'Missing Supabase environment variables. ' +
+      'Please ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set.'
+    );
+  }
 }
 
 /**
  * Supabase client instance with AsyncStorage for session persistence
+ * Uses placeholder values if env vars are missing (for Expo Go development)
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
 

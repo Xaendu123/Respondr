@@ -8,14 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { Autocomplete, Input, Text } from '../src/components/ui';
+import React, { useState } from 'react';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
-import { checkEmailExists } from '../src/services/supabase/authService';
-import { searchOrganizations } from '../src/services/supabase/organizationsService';
 import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function RegisterScreen() {
@@ -28,15 +26,9 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [organization, setOrganization] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
   const [emailError, setEmailError] = useState('');
-  const [checkingEmail, setCheckingEmail] = useState(false);
-  const [organizations, setOrganizations] = useState<string[]>([]);
-  const [searchingOrganizations, setSearchingOrganizations] = useState(false);
-  const emailCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const organizationSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   
   const styles = createStyles(theme);
   
@@ -47,98 +39,30 @@ export default function RegisterScreen() {
   
   const handleEmailChange = (text: string) => {
     setEmail(text);
-    setEmailTouched(true);
-    
-    // Clear previous timeout
-    if (emailCheckTimeoutRef.current) {
-      clearTimeout(emailCheckTimeoutRef.current);
-    }
-    
-    if (text.trim().length === 0) {
+    // Clear error when user starts typing (only show error on submit)
+    if (emailError) {
       setEmailError('');
-      setCheckingEmail(false);
-    } else if (!validateEmail(text.trim())) {
-      setEmailError(t('auth.invalidEmail'));
-      setCheckingEmail(false);
-    } else {
-      // Valid email format - check if it exists (debounced)
-      setEmailError('');
-      setCheckingEmail(true);
-      
-      // Debounce the email check (wait 500ms after user stops typing)
-      emailCheckTimeoutRef.current = setTimeout(async () => {
-        try {
-          const exists = await checkEmailExists(text.trim());
-          if (exists) {
-            setEmailError(t('auth.emailAlreadyExists'));
-          } else {
-            setEmailError(''); // Email is available
-          }
-        } catch (error) {
-          // If we can't check (e.g., RLS blocks it), don't show error
-          // The signup will handle it properly
-          console.warn('Could not check email:', error);
-        } finally {
-          setCheckingEmail(false);
-        }
-      }, 500);
+    }
+    if (emailAlreadyRegistered) {
+      setEmailAlreadyRegistered(false);
     }
   };
 
-  // Handle organization search
-  const handleOrganizationChange = async (text: string) => {
-    setOrganization(text);
-    
-    // Clear previous timeout
-    if (organizationSearchTimeoutRef.current) {
-      clearTimeout(organizationSearchTimeoutRef.current);
-    }
-    
-    if (text.trim().length >= 2) {
-      setSearchingOrganizations(true);
-      // Debounce organization search
-      organizationSearchTimeoutRef.current = setTimeout(async () => {
-        try {
-          const results = await searchOrganizations(text.trim());
-          setOrganizations(results);
-        } catch (error) {
-          console.warn('Could not search organizations:', error);
-          setOrganizations([]);
-        } finally {
-          setSearchingOrganizations(false);
-        }
-      }, 300);
-    } else {
-      setOrganizations([]);
-      setSearchingOrganizations(false);
-    }
-  };
-
-  const handleOrganizationSelect = (selectedOrg: string) => {
-    setOrganization(selectedOrg);
-  };
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (emailCheckTimeoutRef.current) {
-        clearTimeout(emailCheckTimeoutRef.current);
-      }
-      if (organizationSearchTimeoutRef.current) {
-        clearTimeout(organizationSearchTimeoutRef.current);
-      }
-    };
-  }, []);
   
   const handleRegister = async () => {
+    // Clear previous errors
+    setEmailError('');
+    
     if (!displayName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       hapticError();
       Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
       return;
     }
     
+    // Validate email only on submit
     if (!validateEmail(email.trim())) {
       hapticError();
+      setEmailError(t('auth.invalidEmail'));
       Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
       return;
     }
@@ -155,23 +79,35 @@ export default function RegisterScreen() {
       return;
     }
     
-    // Check email one more time before submitting
-    if (emailError === t('auth.emailAlreadyExists')) {
-      hapticError();
-      Alert.alert(t('errors.validation'), t('auth.emailAlreadyExists'));
-      return;
-    }
-    
     try {
-      await register({ 
+      console.log('=== REGISTER SCREEN: Starting signup ===', { email: email.trim() });
+      const confirmationEmail = await register({ 
         email: email.trim(), 
         password, 
         displayName: displayName.trim(),
-        organization: organization.trim() || undefined,
       });
+      console.log('=== REGISTER SCREEN: Signup successful ===', { confirmationEmail });
       hapticSuccess();
+      
+      // Only redirect to confirm email screen if signup was successful
+      // (confirmationEmail will be null if user is already authenticated)
+      if (confirmationEmail !== null) {
+        console.log('=== REGISTER SCREEN: Redirecting to confirm-email ===');
+        router.replace({
+          pathname: '/confirm-email',
+          params: { email: confirmationEmail || email.trim() },
+        });
+      } else {
+        console.log('=== REGISTER SCREEN: No redirect needed (user authenticated) ===');
+      }
+      // If confirmationEmail is null, user is already authenticated
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
+      console.log('=== REGISTER SCREEN: Error caught ===', {
+        message: error.message,
+        code: error.code,
+        fullError: error,
+      });
       // Check if error is due to existing email
       const errorMessage = error.message || '';
       hapticError();
@@ -182,9 +118,12 @@ export default function RegisterScreen() {
         error.code === 'signup_disabled' ||
         error.code === 'email_address_not_authorized'
       ) {
-        setEmailError(t('auth.emailAlreadyExists'));
-        Alert.alert(t('errors.validation'), t('auth.emailAlreadyExists'));
+        console.log('=== REGISTER SCREEN: Setting emailAlreadyRegistered to true ===');
+        setEmailAlreadyRegistered(true);
+        setEmailError('');
       } else {
+        console.log('=== REGISTER SCREEN: Showing generic error ===');
+        setEmailError(errorMessage || t('auth.registrationFailed'));
         Alert.alert(t('errors.auth'), errorMessage || t('auth.registrationFailed'));
       }
     }
@@ -240,14 +179,20 @@ export default function RegisterScreen() {
       
       {/* Form Section */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         style={styles.formSection}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.formContent}>
-          
-          {/* Registration Form */}
-          <View style={styles.formCard}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.formContent}>
+            
+            {/* Registration Form */}
+            <View style={styles.formCard}>
             <Input
               label={t('auth.displayName')}
               value={displayName}
@@ -266,29 +211,32 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
                 textContentType="username"
-                editable={!checkingEmail}
               />
-              {checkingEmail && (
-                <Text variant="caption" style={styles.checkingText}>
-                  {t('auth.checkingEmail')}
-                </Text>
-              )}
-              {emailError && emailTouched && !checkingEmail && (
+              {emailError && (
                 <Text variant="caption" style={styles.errorText}>
                   {emailError}
                 </Text>
               )}
+              {emailAlreadyRegistered && (
+                <View style={styles.infoContainer}>
+                  <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoText}>
+                      {t('auth.emailAlreadyRegistered')}{' '}
+                      <Text style={styles.infoLink} onPress={() => {
+                        if (router.canGoBack()) {
+                          router.back();
+                        } else {
+                          router.replace('/login');
+                        }
+                      }}>
+                        {t('auth.signInHere')}
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
-            
-            <Autocomplete
-              label={t('auth.organization')}
-              value={organization}
-              onChangeText={handleOrganizationChange}
-              onSelect={handleOrganizationSelect}
-              placeholder={t('auth.organizationPlaceholder')}
-              data={organizations}
-              minCharsToSearch={2}
-            />
             
             <View>
               <Input
@@ -355,7 +303,8 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
           </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -469,11 +418,14 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       shadowRadius: 12,
       elevation: 8,
     },
+    scrollContent: {
+      flexGrow: 1,
+    },
     formContent: {
       flex: 1,
       padding: theme.spacing.xl,
       paddingTop: theme.spacing.lg,
-      justifyContent: 'space-between',
+      minHeight: '100%',
     },
     formCard: {
       gap: theme.spacing.sm,
@@ -524,11 +476,29 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       marginTop: theme.spacing.xs,
       marginLeft: theme.spacing.xs,
     },
-    checkingText: {
-      color: theme.colors.textSecondary,
-      marginTop: theme.spacing.xs,
-      marginLeft: theme.spacing.xs,
-      fontStyle: 'italic',
+    infoContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.primary + '40',
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.md,
+      marginTop: theme.spacing.sm,
+      gap: theme.spacing.sm,
+    },
+    infoContent: {
+      flex: 1,
+    },
+    infoText: {
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textPrimary,
+      lineHeight: 20,
+    },
+    infoLink: {
+      color: theme.colors.primary,
+      fontWeight: '600',
+      textDecorationLine: 'underline',
     },
   });
 }

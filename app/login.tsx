@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
@@ -25,7 +25,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
   const [emailError, setEmailError] = useState('');
   
   const styles = createStyles(theme);
@@ -37,26 +36,26 @@ export default function LoginScreen() {
   
   const handleEmailChange = (text: string) => {
     setEmail(text);
-    setEmailTouched(true);
-    
-    if (text.trim().length === 0) {
-      setEmailError('');
-    } else if (!validateEmail(text.trim())) {
-      setEmailError(t('auth.invalidEmail'));
-    } else {
+    // Clear error when user starts typing (only show error on submit)
+    if (emailError) {
       setEmailError('');
     }
   };
   
   const handleLogin = async () => {
+    // Clear previous errors
+    setEmailError('');
+    
     if (!email.trim() || !password.trim()) {
       hapticError();
       Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
       return;
     }
     
+    // Validate email only on submit
     if (!validateEmail(email.trim())) {
       hapticError();
+      setEmailError(t('auth.invalidEmail'));
       Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
       return;
     }
@@ -67,6 +66,17 @@ export default function LoginScreen() {
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
       hapticError();
+      
+      // Check if error is due to email not being confirmed
+      if (error.code === 'EMAIL_NOT_CONFIRMED' || error.message?.includes('Email not confirmed')) {
+        // Navigate to confirm-email screen with the email
+        router.replace({
+          pathname: '/confirm-email',
+          params: { email: error.email || email.trim() },
+        });
+        return;
+      }
+      
       Alert.alert(t('errors.auth'), error.message || t('auth.loginFailed'));
     }
   };
@@ -74,6 +84,51 @@ export default function LoginScreen() {
   const handleRegister = () => {
     hapticLight();
     router.push('/register');
+  };
+  
+  const handleForgotPassword = async () => {
+    hapticLight();
+    
+    // Validate email first
+    if (!email.trim()) {
+      Alert.alert(
+        t('auth.forgotPassword'),
+        t('auth.enterEmailForReset'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.ok'),
+            onPress: () => {
+              // Focus email input (would need ref for this, but simple alert is fine)
+            },
+          },
+        ]
+      );
+      return;
+    }
+    
+    if (!validateEmail(email.trim())) {
+      hapticError();
+      Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
+      return;
+    }
+    
+    try {
+      const { resetPassword } = await import('../src/services/supabase/authService');
+      await resetPassword(email.trim());
+      hapticSuccess();
+      Alert.alert(
+        t('auth.passwordResetSent'),
+        t('auth.checkEmailForReset'),
+        [{ text: t('common.ok') }]
+      );
+    } catch (error: any) {
+      hapticError();
+      Alert.alert(
+        t('errors.auth'),
+        error.message || t('auth.resetPasswordFailed')
+      );
+    }
   };
   
   return (
@@ -116,17 +171,23 @@ export default function LoginScreen() {
       
       {/* Form Section */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         style={styles.formSection}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.formContent}>
-          <Text variant="headingMedium" style={styles.welcomeText}>
-            {t('auth.welcomeBack')}
-          </Text>
-          
-          {/* Login Form */}
-          <View style={styles.formCard}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.formContent}>
+            <Text variant="headingMedium" style={styles.welcomeText}>
+              {t('auth.welcomeBack')}
+            </Text>
+            
+            {/* Login Form */}
+            <View style={styles.formCard}>
             <View>
               <Input
                 label={t('auth.email')}
@@ -138,7 +199,7 @@ export default function LoginScreen() {
                 autoComplete="email"
                 textContentType="username"
               />
-              {emailError && emailTouched && (
+              {emailError && (
                 <Text variant="caption" style={styles.errorText}>
                   {emailError}
                 </Text>
@@ -168,7 +229,10 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
             
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity 
+              style={styles.forgotPassword}
+              onPress={handleForgotPassword}
+            >
               <Text variant="caption" color="primary">
                 {t('auth.forgotPassword')}
               </Text>
@@ -205,7 +269,8 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
           </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -313,11 +378,14 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       shadowRadius: 12,
       elevation: 8,
     },
+    scrollContent: {
+      flexGrow: 1,
+    },
     formContent: {
       flex: 1,
       padding: theme.spacing.xl,
       paddingTop: theme.spacing.xl,
-      justifyContent: 'space-between',
+      minHeight: '100%',
     },
     welcomeText: {
       marginBottom: theme.spacing.lg,

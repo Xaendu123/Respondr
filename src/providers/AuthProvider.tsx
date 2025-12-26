@@ -16,7 +16,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (request: RegisterRequest) => Promise<void>;
+  register: (request: RegisterRequest) => Promise<string | null>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   error: string | null;
@@ -32,21 +32,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   // Initialize auth state on mount
   useEffect(() => {
-    initializeAuth();
-    
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        await loadUserProfile();
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      } else if (event === 'TOKEN_REFRESHED') {
-        await loadUserProfile();
-      }
+    // Initialize auth asynchronously to prevent blocking app load
+    initializeAuth().catch((error) => {
+      console.error('Auth initialization error:', error);
+      setIsLoading(false);
     });
     
+    // Listen for auth state changes
+    let subscription: any;
+    try {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          await loadUserProfile();
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          await loadUserProfile();
+        } else if (event === 'USER_UPDATED' && session) {
+          // Email confirmed - user is now fully authenticated
+          await loadUserProfile();
+        }
+      });
+      subscription = data.subscription;
+    } catch (error) {
+      console.error('Failed to set up auth state listener:', error);
+    }
+    
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
   
@@ -55,13 +70,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   async function initializeAuth() {
     try {
-      const session = await supabaseAuth.getSession();
-      if (session) {
-        await loadUserProfile();
+      // Use supabase.auth.getSession() directly to get { data, error } format
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      // Handle invalid refresh token error (stale session)
+      if (sessionError) {
+        // Check if it's an invalid refresh token error
+        if (sessionError.message?.includes('Invalid Refresh Token') || 
+            sessionError.message?.includes('Refresh Token Not Found')) {
+          // Clear the invalid session
+          console.log('Clearing invalid session...');
+          await supabaseAuth.signOut();
+          setUser(null);
+          return;
+        }
+        // For other errors, just log and continue (don't block app)
+        console.warn('Session error (non-critical):', sessionError.message);
       }
-    } catch (error) {
+      
+      if (sessionData?.session) {
+        try {
+          await loadUserProfile();
+        } catch (profileError: any) {
+          // Handle invalid refresh token during profile load
+          if (profileError?.message?.includes('Invalid Refresh Token') || 
+              profileError?.message?.includes('Refresh Token Not Found')) {
+            console.log('Invalid refresh token during profile load, signing out...');
+            await supabaseAuth.signOut();
+            setUser(null);
+          } else {
+            console.error('Failed to load user profile:', profileError);
+          }
+        }
+      }
+    } catch (error: any) {
       console.error('Failed to initialize auth:', error);
+      
+      // If it's an invalid refresh token error, clear the session
+      if (error?.message?.includes('Invalid Refresh Token') || 
+          error?.message?.includes('Refresh Token Not Found')) {
+        try {
+          await supabaseAuth.signOut();
+          setUser(null);
+        } catch (signOutError) {
+          console.error('Failed to sign out:', signOutError);
+        }
+      }
+      
+      // Don't block app loading on auth errors
     } finally {
+      // Always set loading to false, even if there's an error
       setIsLoading(false);
     }
   }
@@ -100,22 +158,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   /**
    * Register new user with Supabase
+   * Returns email if confirmation is needed, otherwise sets user and returns null
    */
-  async function register(request: RegisterRequest): Promise<void> {
+  async function register(request: RegisterRequest): Promise<string | null> {
     try {
       setIsLoading(true);
       setError(null);
       
-      const userProfile = await supabaseAuth.signUp({
+      const result = await supabaseAuth.signUp({
         email: request.email,
         password: request.password,
         displayName: request.displayName,
-        organization: request.organization,
       });
-      setUser(userProfile);
+      
+      if (result.needsConfirmation) {
+        // User needs to confirm email - return email for redirect
+        return result.email;
+      } else if (result.user) {
+        // User is signed in (email confirmation not required or auto-confirmed)
+        setUser(result.user);
+        // Reload profile to ensure we have the latest data
+        await loadUserProfile();
+        return null;
+      } else {
+        throw new Error('Unexpected signup result');
+      }
     } catch (error: any) {
       const errorMessage = error.message || 'Registration failed. Please try again.';
       setError(errorMessage);
+      // Clear user on error
+      setUser(null);
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);

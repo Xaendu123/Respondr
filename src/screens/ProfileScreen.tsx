@@ -5,6 +5,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -187,23 +188,55 @@ export function ProfileScreen() {
 
     setUploadingAvatar(true);
     try {
-      // Convert image to blob
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
+      console.log('=== AVATAR UPLOAD START ===', { imageUri, userId: user.id });
+      
+      // Note: Old avatar cleanup is handled by database trigger (cleanup_old_avatars_trigger)
+      // The trigger automatically deletes old avatars when a new one is uploaded
+      
+      // Read file as base64 using expo-file-system
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: 'base64' as any,
+      });
 
+      // Determine file extension and MIME type
+      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const mimeType = fileExt === 'png' ? 'image/png' : fileExt === 'jpeg' || fileExt === 'jpg' ? 'image/jpeg' : 'image/jpeg';
+      
       // Create file name
-      const fileExt = imageUri.split('.').pop() || 'jpg';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      console.log('=== AVATAR UPLOAD INFO ===', {
+        fileName,
+        fileExt,
+        mimeType,
+        base64Length: base64.length,
+      });
 
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
+      // Convert base64 to ArrayBuffer (works better in React Native than Blob)
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const arrayBuffer = byteArray.buffer;
+
+      // Upload to Supabase storage using ArrayBuffer
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, blob, {
-          contentType: `image/${fileExt}`,
+        .upload(fileName, arrayBuffer, {
+          contentType: mimeType,
           upsert: true,
         });
 
+      console.log('=== AVATAR UPLOAD RESPONSE ===', {
+        hasError: !!uploadError,
+        error: uploadError,
+        data: uploadData,
+      });
+
       if (uploadError) {
+        console.error('=== AVATAR UPLOAD ERROR ===', uploadError);
         throw uploadError;
       }
 
@@ -211,6 +244,8 @@ export function ProfileScreen() {
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
+
+      console.log('=== AVATAR PUBLIC URL ===', { publicUrl });
 
       // Update profile with new avatar URL
       await updateProfile({ avatar: publicUrl });
@@ -220,10 +255,18 @@ export function ProfileScreen() {
       await refreshUser();
       hapticSuccess();
 
+      console.log('=== AVATAR UPLOAD SUCCESS ===');
       Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      Alert.alert(t('errors.generic'), t('profile.avatarUploadError'));
+    } catch (error: any) {
+      console.error('=== AVATAR UPLOAD FAILED ===', {
+        error: error,
+        message: error?.message,
+        code: error?.code,
+        statusCode: error?.statusCode,
+        fullError: JSON.stringify(error, null, 2),
+      });
+      const errorMessage = error?.message || t('profile.avatarUploadError');
+      Alert.alert(t('errors.generic'), errorMessage);
     } finally {
       setUploadingAvatar(false);
     }
