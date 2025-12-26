@@ -27,8 +27,80 @@ function RootLayoutNav() {
 
       let handled = false;
 
-      // Check if this is an OAuth callback or email confirmation
-      if (url.includes('auth-callback')) {
+      // Handle direct confirmation links (no browser redirect)
+      // Format: respondr://auth/confirm?token_hash=...&type=signup
+      // OR: respondr://auth/confirm?token=...&type=recovery
+      if (url.includes('auth/confirm') || url.includes('/auth/confirm')) {
+        handled = true;
+        try {
+          console.log('=== DIRECT AUTH CONFIRMATION LINK ===', { url: url.substring(0, 200) });
+          
+          const urlObj = new URL(url);
+          const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.searchParams.get('token');
+          const type = urlObj.searchParams.get('type') || 'signup';
+          
+          console.log('=== EXTRACTED DIRECT CONFIRMATION TOKENS ===', {
+            hasTokenHash: !!tokenHash,
+            type,
+          });
+          
+          if (!tokenHash) {
+            console.error('=== NO TOKEN HASH IN DIRECT CONFIRMATION LINK ===');
+            Alert.alert(
+              t('errors.auth'),
+              t('auth.confirmationEmailInvalid')
+            );
+            router.replace('/login');
+            return;
+          }
+          
+          // Verify the token hash to get a session
+          console.log('=== VERIFYING DIRECT CONFIRMATION TOKEN ===');
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: decodeURIComponent(tokenHash),
+            type: type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email',
+          });
+          
+          if (error) {
+            console.error('=== DIRECT CONFIRMATION VERIFY ERROR ===', error);
+            Alert.alert(
+              t('errors.auth'),
+              error.message || t('auth.confirmationEmailInvalid')
+            );
+            router.replace('/login');
+          } else if (data?.session) {
+            console.log('=== DIRECT CONFIRMATION SUCCESS ===');
+            await refreshUser();
+            
+            if (type === 'recovery') {
+              // Password reset - navigate to reset password screen
+              router.replace({
+                pathname: '/reset-password',
+                params: { url },
+              });
+            } else {
+              // Email confirmation - user is now logged in, navigate to home
+              router.replace('/(tabs)/logbook');
+            }
+          } else {
+            console.error('=== NO SESSION AFTER DIRECT CONFIRMATION ===');
+            Alert.alert(
+              t('errors.auth'),
+              t('auth.confirmationEmailInvalid')
+            );
+            router.replace('/login');
+          }
+        } catch (error) {
+          console.error('=== DIRECT CONFIRMATION EXCEPTION ===', error);
+          Alert.alert(
+            t('errors.auth'),
+            t('auth.confirmationEmailInvalid')
+          );
+          router.replace('/login');
+        }
+      }
+      // Check if this is an OAuth callback or email confirmation (redirect flow)
+      else if (url.includes('auth-callback')) {
         handled = true;
         try {
           // Check if it's an email confirmation (type=signup) or OAuth
