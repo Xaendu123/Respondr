@@ -282,6 +282,7 @@ function RootLayoutNav() {
       }
 
       console.log('Processing deep link:', url.substring(0, 100) + '...');
+      // Set flag immediately to prevent catch-all route from showing not-found
       isProcessingDeepLinkRef.current = true;
       let handled = false;
 

@@ -162,9 +162,6 @@ export default function ResetPasswordScreen() {
       
       hapticSuccess();
       
-      // Clear loading state immediately
-      setLoading(false);
-      
       // Password reset successful - navigate immediately
       // Don't wait for Alert to be dismissed
       router.replace('/login');
@@ -180,11 +177,14 @@ export default function ResetPasswordScreen() {
     } catch (error: any) {
       hapticError();
       console.error('Password reset error:', error);
-      setLoading(false); // Clear loading on error
       Alert.alert(
         t('errors.auth'),
         error.message || t('auth.passwordResetFailed')
       );
+    } finally {
+      // ALWAYS clear loading state, no matter what happens
+      // This ensures the button never gets stuck on loading
+      setLoading(false);
     }
   };
   
@@ -314,7 +314,7 @@ export default function ResetPasswordScreen() {
                   <Text style={styles.resetButtonText}>
                     {loading ? t('common.loading') : t('auth.resetPassword')}
                   </Text>
-                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  {!loading && <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />}
                 </TouchableOpacity>
               </LinearGradient>
             </View>
