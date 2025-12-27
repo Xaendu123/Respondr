@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import 'react-native-gesture-handler'; // Must be imported first
 import { supabase } from "../src/config/supabase";
@@ -14,6 +14,8 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const { t } = useTranslation();
+  // Track if we're currently processing a deep link to prevent auth redirects from interfering
+  const isProcessingDeepLinkRef = useRef(false);
 
   // Handle deep links for OAuth callbacks and password reset
   useEffect(() => {
@@ -21,27 +23,37 @@ function RootLayoutNav() {
     const processedUrls = new Set<string>();
     
     const handleEmailConfirmation = async (url: string, urlObj: URL): Promise<boolean> => {
-      // Check if user is already authenticated
-      const { data: existingSession } = await supabase.auth.getSession();
-      if (existingSession?.session) {
-        // User is already logged in - navigate to home
-        await refreshUser();
-        router.replace('/(tabs)/log');
-        return true;
-      }
+      console.log('=== EMAIL CONFIRMATION HANDLER ===', { url: url.substring(0, 100) });
+      
+      // Don't check for existing session first - we need to verify the OTP to create the session
+      // The OTP verification will create the session if successful
 
       // Extract tokens from various possible locations
+      // Priority: searchParams > hash regex > hash URLSearchParams
+      const hash = urlObj.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      
+      // Check for direct session tokens in hash (alternative format)
+      const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1] || hashParams.get('access_token');
+      const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1] || hashParams.get('refresh_token');
+      
       const tokenHash = urlObj.searchParams.get('token_hash') || 
+                       hashParams.get('token_hash') ||
                        urlObj.hash.match(/token_hash=([^&]+)/)?.[1] ||
                        urlObj.searchParams.get('token');
       
       const type = urlObj.searchParams.get('type') || 
+                   hashParams.get('type') ||
                    urlObj.hash.match(/type=([^&]+)/)?.[1] || 
                    'signup';
       
-      // Check for direct session tokens in hash (alternative format)
-      const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1];
-      const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1];
+      console.log('Extracted tokens:', {
+        hasTokenHash: !!tokenHash,
+        tokenHashLength: tokenHash?.length,
+        type: type,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken
+      });
       
       // Helper function to verify OTP with retry logic
       const verifyOtpWithRetry = async (token: string, otpType: string, retries = 2): Promise<{ success: boolean; session: any }> => {
@@ -59,7 +71,7 @@ function RootLayoutNav() {
             
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: decodedToken,
-              type: finalOtpType as any,
+              type: finalOtpType as 'signup' | 'email' | 'recovery',
             });
             
             if (error) {
@@ -159,9 +171,15 @@ function RootLayoutNav() {
       // Method 2: Token hash verification (for signup/email confirmation)
       if (tokenHash) {
         // Determine OTP type - prioritize signup for email confirmation
+        // For email confirmation, we should use 'signup' type to verify the account
         const otpType = type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email';
         
-        console.log('Verifying OTP for email confirmation:', { type: otpType, hasToken: !!tokenHash });
+        console.log('Verifying OTP for email confirmation:', { 
+          type: otpType, 
+          hasToken: !!tokenHash,
+          tokenLength: tokenHash.length,
+          urlType: type
+        });
         
         const result = await verifyOtpWithRetry(tokenHash, otpType);
         
@@ -263,16 +281,26 @@ function RootLayoutNav() {
         urlsArray.slice(0, urlsArray.length - 10).forEach(u => processedUrls.delete(u));
       }
 
+      console.log('Processing deep link:', url.substring(0, 100) + '...');
+      isProcessingDeepLinkRef.current = true;
       let handled = false;
 
       // Handle direct confirmation links (no browser redirect)
       // Format: respondr://auth/confirm?token_hash=...&type=signup
-      // OR: respondr://auth/confirm?token=...&type=recovery
-      if (url.includes('auth/confirm') || url.includes('/auth/confirm')) {
+      // OR: respondr://auth-callback?token_hash=...&type=signup
+      // NOTE: Password reset (type=recovery) is handled separately below
+      if ((url.includes('auth/confirm') || url.includes('/auth/confirm') || (url.includes('auth-callback') && (url.includes('type=signup') || url.includes('type=email')))) 
+          && !url.includes('type=recovery') && !url.includes('reset-password')) {
         handled = true;
+        console.log('Matched email confirmation deep link pattern');
         try {
           const urlObj = new URL(url);
-          await handleEmailConfirmation(url, urlObj);
+          const result = await handleEmailConfirmation(url, urlObj);
+          if (!result) {
+            // If handler returns false, it means it couldn't process the link
+            console.error('Email confirmation handler returned false');
+            router.replace('/not-found' as any);
+          }
         } catch (error) {
           console.error('=== DIRECT CONFIRMATION EXCEPTION ===', error);
           Alert.alert(
@@ -289,9 +317,15 @@ function RootLayoutNav() {
           const urlObj = new URL(url);
           // Check if it's an email confirmation (type=signup) or OAuth
           if (url.includes('type=signup') || url.includes('type=email')) {
-            await handleEmailConfirmation(url, urlObj);
+            console.log('Matched auth-callback with email confirmation');
+            const result = await handleEmailConfirmation(url, urlObj);
+            if (!result) {
+              console.error('Email confirmation handler returned false for auth-callback');
+              router.replace('/not-found' as any);
+            }
           } else {
             // OAuth callback
+            console.log('Processing OAuth callback');
             await handleOAuthCallback(url);
             await refreshUser();
             router.replace('/(tabs)/log');
@@ -301,12 +335,14 @@ function RootLayoutNav() {
           router.replace('/login');
         }
       }
-      // Check if this is a password reset link
-      else if (url.includes('reset-password') || url.includes('type=recovery')) {
+      // Handle password reset links
+      // Format: respondr://reset-password#access_token=...&refresh_token=...&type=recovery
+      // OR: respondr://auth/confirm?token_hash=...&type=recovery
+      else if (url.includes('reset-password') || (url.includes('type=recovery') && !url.includes('type=signup'))) {
         handled = true;
+        console.log('=== PASSWORD RESET DEEP LINK ===', { url: url.substring(0, 100) });
+        
         try {
-          // Supabase redirects to your app with tokens in the URL hash (fragment)
-          // Format: respondr://reset-password#access_token=...&refresh_token=...&type=recovery
           const urlObj = new URL(url);
           
           // Extract tokens from hash (fragment) - this is where Supabase puts them after redirect
@@ -314,136 +350,135 @@ function RootLayoutNav() {
           const hashParams = new URLSearchParams(hash);
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
-          const type = hashParams.get('type') || urlObj.searchParams.get('type');
+          const type = hashParams.get('type') || urlObj.searchParams.get('type') || 'recovery';
           
+          // Extract token_hash from various locations
+          const tokenHash = urlObj.searchParams.get('token_hash') || 
+                           hashParams.get('token_hash') ||
+                           urlObj.hash.match(/token_hash=([^&]+)/)?.[1];
+          
+          // Method 1: Direct session tokens (preferred - fastest)
           if (accessToken && refreshToken) {
-            // Method 1: Set session using tokens from URL hash (preferred)
+            console.log('Setting session from direct tokens (password reset)');
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: decodeURIComponent(accessToken),
               refresh_token: decodeURIComponent(refreshToken),
             });
             
             if (sessionError) {
-              console.error('=== PASSWORD RESET SESSION ERROR ===', sessionError);
+              console.error('Password reset session error:', sessionError);
               Alert.alert(
                 t('errors.auth'),
-                t('auth.invalidResetLink')
+                t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.'
               );
               router.replace('/login');
             } else if (sessionData?.session) {
-              // Session set successfully - navigate to reset password screen
+              console.log('Session created for password reset, navigating to reset screen');
               await refreshUser();
               router.replace({
                 pathname: '/reset-password',
                 params: { url },
               });
             } else {
-              console.error('=== NO SESSION AFTER SET ===');
+              console.error('No session after setting tokens');
               router.replace('/login');
             }
-          } else {
-            // No tokens in hash - might be the verification URL or browser didn't pass hash
-            // Check if we can extract token_hash or token from the URL
-            const tokenHash = urlObj.searchParams.get('token_hash');
-            const token = urlObj.searchParams.get('token');
+          }
+          // Method 2: Token hash verification (use verifyOtp to create session)
+          else if (tokenHash) {
+            console.log('Verifying OTP for password reset:', { hasToken: !!tokenHash });
             
-            // If we have a token_hash, use verifyOtp to exchange it for a session
-            if (tokenHash && (type === 'recovery' || url.includes('type=recovery'))) {
-              try {
-                const { data, error } = await supabase.auth.verifyOtp({
-                  token_hash: tokenHash,
-                  type: 'recovery',
+            try {
+              const decodedToken = decodeURIComponent(tokenHash);
+              const { data, error } = await supabase.auth.verifyOtp({
+                token_hash: decodedToken,
+                type: 'recovery',
+              });
+              
+              if (error) {
+                console.error('Password reset OTP verification error:', error);
+                Alert.alert(
+                  t('errors.auth'),
+                  t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.'
+                );
+                router.replace('/login');
+              } else if (data?.session) {
+                console.log('Password reset OTP verified, session created');
+                await refreshUser();
+                router.replace({
+                  pathname: '/reset-password',
+                  params: { url },
                 });
-                
-                if (error) {
-                  console.error('=== VERIFY OTP ERROR ===', error);
-                  Alert.alert('Error', 'Invalid or expired reset link. Please request a new password reset.');
-                  router.replace('/login');
-                } else if (data?.session) {
+              } else {
+                console.error('No session after OTP verification');
+                // Check if session was created anyway
+                const { data: sessionCheck } = await supabase.auth.getSession();
+                if (sessionCheck?.session) {
+                  console.log('Session found after verification');
                   await refreshUser();
                   router.replace({
                     pathname: '/reset-password',
                     params: { url },
                   });
                 } else {
-                  console.error('=== NO SESSION AFTER VERIFY OTP ===');
-                  router.replace('/login');
-                }
-              } catch (verifyError) {
-                console.error('=== VERIFY OTP EXCEPTION ===', verifyError);
-                Alert.alert('Error', 'Failed to verify reset link. Please request a new password reset.');
-                router.replace('/login');
-              }
-            } else if (token && (type === 'recovery' || url.includes('type=recovery'))) {
-              // We have a token but need token_hash for verifyOtp
-              // The token in the URL is the raw token, but verifyOtp needs token_hash
-              // However, if this is the verification URL from email, we need to check if
-              // the redirect actually happened or if we're still on the verification URL
-              
-              // If this is still the Supabase verification URL, we can't directly use it
-              // The user needs to click it in browser first, then browser redirects to app
-              // For now, try waiting to see if session gets set automatically
-              Alert.alert(
-                'Processing...',
-                'Please wait while we verify your reset link...'
-              );
-              
-              setTimeout(async () => {
-                    const { data: sessionData } = await supabase.auth.getSession();
-                    if (sessionData?.session) {
-                      await refreshUser();
-                  router.replace({
-                    pathname: '/reset-password',
-                    params: { url },
-                  });
-                } else {
-                  console.error('=== NO SESSION AFTER WAIT ===');
                   Alert.alert(
-                    'Error', 
-                    'Could not verify reset link. Please open the link in a browser first, then it will redirect to the app.'
+                    t('errors.auth'),
+                    t('auth.invalidResetLink') || 'Could not create session. Please request a new password reset.'
                   );
                   router.replace('/login');
                 }
-              }, 2000);
-            } else {
-              console.error('=== NO TOKENS FOUND ===', { 
-                hasHash: !!hash, 
-                hashLength: hash?.length,
-                hasTokenHash: !!tokenHash,
-                hasToken: !!token,
-                searchParams: Object.fromEntries(urlObj.searchParams),
-              });
-              // Try one more time - check if Supabase set session automatically
-              setTimeout(async () => {
-                    const { data: sessionData } = await supabase.auth.getSession();
-                    if (sessionData?.session) {
-                      await refreshUser();
-                  router.replace({
-                    pathname: '/reset-password',
-                    params: { url },
-                  });
-                } else {
-                  Alert.alert('Error', 'Invalid reset link format. Please request a new password reset.');
-                  router.replace('/login');
-                }
-              }, 1000);
+              }
+            } catch (verifyError) {
+              console.error('Password reset OTP verification exception:', verifyError);
+              Alert.alert(
+                t('errors.auth'),
+                t('auth.invalidResetLink') || 'Failed to verify reset link. Please request a new password reset.'
+              );
+              router.replace('/login');
             }
+          } else {
+            // No tokens found - show error
+            console.error('No tokens found in password reset link:', {
+              hasHash: !!hash,
+              hashLength: hash?.length,
+              hasTokenHash: !!tokenHash,
+              searchParams: Object.fromEntries(urlObj.searchParams),
+            });
+            Alert.alert(
+              t('errors.auth'),
+              t('auth.invalidResetLink') || 'Invalid reset link format. Please request a new password reset.'
+            );
+            router.replace('/login');
           }
         } catch (error) {
-          console.error('=== PASSWORD RESET DEEP LINK ERROR ===', error);
-          Alert.alert('Error', 'Failed to process reset link. Please request a new password reset.');
+          console.error('Password reset deep link error:', error);
+          Alert.alert(
+            t('errors.auth'),
+            t('auth.invalidResetLink') || 'Failed to process reset link. Please request a new password reset.'
+          );
           router.replace('/login');
         }
       }
+      // Handle password changed confirmation (just redirect to login)
+      else if (url.includes('password-changed') || url.includes('passwordChanged') || url.includes('password_changed')) {
+        handled = true;
+        console.log('Password changed confirmation, redirecting to login');
+        router.replace('/login');
+      }
       // Check if this is an email confirmation link (generic catch-all)
       // Only process if not already handled by more specific handlers above
-      else if (!handled && (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('type=signup') || url.includes('type=email'))) {
+      else if (!handled && (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('token_hash=') || url.includes('type=signup') || url.includes('type=email'))) {
         // Skip if it's a password reset (handled separately)
         if (!url.includes('type=recovery') && !url.includes('reset-password')) {
           handled = true;
+          console.log('Matched generic email confirmation pattern');
           try {
             const urlObj = new URL(url);
-            await handleEmailConfirmation(url, urlObj);
+            const result = await handleEmailConfirmation(url, urlObj);
+            if (!result) {
+              console.error('Email confirmation handler returned false for generic pattern');
+              router.replace('/not-found' as any);
+            }
           } catch (error) {
             console.error('Email confirmation error:', error);
             router.replace('/login');
@@ -469,6 +504,11 @@ function RootLayoutNav() {
         console.warn('Invalid or unknown deep link:', url);
         router.replace('/not-found' as any);
       }
+      
+      // Reset flag after processing (with a small delay to allow navigation to complete)
+      setTimeout(() => {
+        isProcessingDeepLinkRef.current = false;
+      }, 3000);
     };
 
     // Check if app was opened via deep link
@@ -483,8 +523,16 @@ function RootLayoutNav() {
   }, [router, refreshUser]);
 
   // Handle authentication-based redirects
+  // NOTE: This runs AFTER deep link handling, so email confirmation deep links are processed first
   useEffect(() => {
     if (isLoading) return;
+    
+    // Don't run auth redirects if we're currently processing a deep link
+    // This prevents interference with email confirmation processing
+    if (isProcessingDeepLinkRef.current) {
+      console.log('Skipping auth redirects - deep link processing in progress');
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(tabs)';
     const inAuthScreens = segments[0] === 'login' || segments[0] === 'register';
@@ -499,9 +547,11 @@ function RootLayoutNav() {
                                 segments[0] === 'my-activities';
 
     // If not authenticated and trying to access protected content
+    // BUT: Don't redirect if we're on auth screens (login, register, confirm-email, reset-password, not-found)
     if (!isAuthenticated && (inAuthGroup || inProtectedScreens)) {
       // Show not-logged-in screen instead of redirecting to login
-      if (!inNotLoggedIn) {
+      // But only if we're not already on an auth-related screen
+      if (!inNotLoggedIn && !inAuthScreens && !inConfirmEmail && !inResetPassword && !inNotFound) {
         router.replace('/not-logged-in' as any);
       }
     } else if (isAuthenticated && inAuthScreens) {

@@ -124,16 +124,64 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
     }
 
     if (!checkProfile) {
-      // Profile was not created by trigger - this should not happen with the fixed trigger
-      // The trigger function uses SECURITY DEFINER and should bypass RLS
-      console.error('Profile not created by trigger after waiting. This indicates a database configuration issue.');
-      throw new Error(
-        'Database error saving new user: Profile was not created automatically. ' +
-        'Please contact support if this issue persists.'
-      );
+      // Profile was not created by trigger - try to create it manually as fallback
+      console.warn('Profile not created by trigger, attempting manual creation as fallback');
+      
+      try {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email || data.email,
+            display_name: authData.user.user_metadata?.display_name || data.displayName || authData.user.email || 'User',
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('Failed to create profile manually:', createError);
+          // Check if it's a duplicate key error (profile was created by trigger but query was too fast)
+          if (createError.code === '23505') {
+            // Duplicate key - profile exists, try to fetch it again
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .single();
+            
+            if (existingProfile) {
+              profile = existingProfile;
+            } else {
+              throw new Error(
+                'Database error saving new user: Profile creation failed. ' +
+                'Please contact support if this issue persists.'
+              );
+            }
+          } else {
+            throw new Error(
+              `Database error saving new user: ${createError.message || 'Profile creation failed'}. ` +
+              'Please contact support if this issue persists.'
+            );
+          }
+        } else if (newProfile) {
+          console.log('Profile created manually as fallback');
+          profile = newProfile;
+        } else {
+          throw new Error(
+            'Database error saving new user: Profile was not created automatically. ' +
+            'Please contact support if this issue persists.'
+          );
+        }
+      } catch (fallbackError: any) {
+        console.error('Fallback profile creation failed:', fallbackError);
+        throw new Error(
+          `Database error saving new user: ${fallbackError.message || 'Profile creation failed'}. ` +
+          'Please contact support if this issue persists.'
+        );
+      }
+    } else {
+      profile = checkProfile;
     }
-    
-    profile = checkProfile;
   }
   
   // User is signed in (email confirmation not required or auto-confirmed)
