@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
@@ -19,7 +19,7 @@ import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 export default function RegisterScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { register, isLoading } = useAuth();
+  const { register } = useAuth();
   const router = useRouter();
   
   const [displayName, setDisplayName] = useState('');
@@ -29,6 +29,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   
   const styles = createStyles(theme);
   
@@ -79,6 +80,7 @@ export default function RegisterScreen() {
       return;
     }
     
+    setIsRegistering(true);
     try {
       const confirmationEmail = await register({ 
         email: email.trim(), 
@@ -114,6 +116,8 @@ export default function RegisterScreen() {
         setEmailError(errorMessage || t('auth.registrationFailed'));
         Alert.alert(t('errors.auth'), errorMessage || t('auth.registrationFailed'));
       }
+    } finally {
+      setIsRegistering(false);
     }
   };
   
@@ -268,13 +272,19 @@ export default function RegisterScreen() {
             >
               <TouchableOpacity 
                 onPress={handleRegister}
-                disabled={isLoading}
+                disabled={isRegistering}
                 style={styles.registerButtonInner}
               >
-                <Text style={styles.registerButtonText}>
-                  {isLoading ? t('common.loading') : t('auth.signUp')}
-                </Text>
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                {isRegistering ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.registerButtonText}>
+                      {t('auth.signUp')}
+                    </Text>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  </>
+                )}
               </TouchableOpacity>
             </LinearGradient>
           </View>

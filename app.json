@@ -22,7 +22,18 @@
         "CFBundleName": "Respondr",
         "NSCameraUsageDescription": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen",
         "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "supabase.co": {
+              "NSExceptionAllowsInsecureHTTPLoads": false,
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": true,
+              "NSExceptionMinimumTLSVersion": "TLSv1.2"
+            }
+          }
+        }
       }
     },
     "android": {

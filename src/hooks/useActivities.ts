@@ -35,6 +35,13 @@ export function useActivities(filter: ActivityFilter = 'all') {
   const [error, setError] = useState<string | null>(null);
   
   const loadActivities = useCallback(async () => {
+    // Don't load activities if user is not authenticated
+    if (!user) {
+      setActivities([]);
+      setError(null);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -44,12 +51,19 @@ export function useActivities(filter: ActivityFilter = 'all') {
       setActivities(data);
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to load activities';
-      setError(errorMessage);
-      console.error('Error loading activities:', err);
+      // Only set error if it's not an authentication error
+      if (!errorMessage.includes('No authenticated user')) {
+        setError(errorMessage);
+        console.error('Error loading activities:', err);
+      } else {
+        // Silently handle auth errors - user just isn't logged in
+        setActivities([]);
+        setError(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, user]);
   
   const createActivity = useCallback(async (input: CreateActivityInput) => {
     setLoading(true);
@@ -139,8 +153,16 @@ export function useActivities(filter: ActivityFilter = 'all') {
   }, []);
   
   useEffect(() => {
-    loadActivities();
-  }, [loadActivities]);
+    // Only load activities if user is authenticated
+    if (user) {
+      loadActivities();
+    } else {
+      // Clear activities when user logs out
+      setActivities([]);
+      setError(null);
+      setLoading(false);
+    }
+  }, [loadActivities, user]);
   
   return {
     activities,
