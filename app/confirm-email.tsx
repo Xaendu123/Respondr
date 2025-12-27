@@ -42,8 +42,17 @@ export default function ConfirmEmailScreen() {
           setResendCooldown(60);
           hapticSuccess();
         } catch (error: any) {
-          // Silently fail on auto-send - user can manually resend if needed
-          console.error('Auto-send confirmation email failed:', error);
+          // Handle rate limiting gracefully
+          if (error.code === 'RATE_LIMIT') {
+            // Set cooldown from error message
+            const cooldown = error.cooldownSeconds || 60;
+            setResendCooldown(cooldown);
+            setHasAutoSent(true); // Mark as sent to prevent retry
+            // Don't show error - just set cooldown
+          } else {
+            // Silently fail on other errors - user can manually resend if needed
+            console.error('Auto-send confirmation email failed:', error);
+          }
         } finally {
           setIsResending(false);
         }
@@ -89,9 +98,22 @@ export default function ConfirmEmailScreen() {
         [{ text: t('common.ok') }]
       );
     } catch (error: any) {
-      hapticError();
-      const errorMessage = error.message || t('auth.resendConfirmationFailed');
-      Alert.alert(t('errors.error'), errorMessage);
+      // Handle rate limiting gracefully
+      if (error.code === 'RATE_LIMIT') {
+        // Set cooldown from error message
+        const cooldown = error.cooldownSeconds || 60;
+        setResendCooldown(cooldown);
+        // Show friendly message instead of error
+        Alert.alert(
+          t('common.info'),
+          t('auth.resendConfirmationCooldown', { seconds: cooldown }),
+          [{ text: t('common.ok') }]
+        );
+      } else {
+        hapticError();
+        const errorMessage = error.message || t('auth.resendConfirmationFailed');
+        Alert.alert(t('errors.error'), errorMessage);
+      }
     } finally {
       setIsResending(false);
     }

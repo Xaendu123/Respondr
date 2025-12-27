@@ -20,6 +20,21 @@ export interface SignInData {
 }
 
 /**
+ * Extract display name from email address
+ * Example: alex_bugnon@bluewin.ch -> alex_bugnon
+ * Example: john.doe@example.com -> john.doe
+ */
+function extractDisplayNameFromEmail(email: string | undefined | null): string {
+  if (!email) return 'User';
+  
+  // Extract the part before @
+  const localPart = email.split('@')[0];
+  if (!localPart) return 'User';
+  
+  return localPart;
+}
+
+/**
  * Sign up a new user
  * Supabase will return an error if the email already exists
  */
@@ -27,7 +42,7 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
   
   // 1. Create auth user
   // Supabase will return an error if the email already exists
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  let { data: authData, error: authError } = await supabase.auth.signUp({
     email: data.email,
     password: data.password,
     options: {
@@ -74,7 +89,40 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
       throw new Error('User already registered');
     }
     
-    throw authError;
+    // Handle 500 errors - might be database trigger issues
+    // If it's an unexpected_failure, it could be the profile creation trigger failing
+    if (authError.status === 500 || authError.code === 'unexpected_failure') {
+      // Check if user was actually created despite the error
+      // Sometimes Supabase creates the user but the trigger fails
+      // First check if authData has a user (might be present even with error)
+      if (authData?.user) {
+        console.warn('Auth signup returned 500 error but user object exists, attempting to continue...');
+        // User exists in response - clear error and continue
+        authError = null;
+      } else {
+        // Try to get user from session (might have been created)
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          console.warn('Auth signup returned 500 error but session exists, attempting to continue...');
+          authData = { user: sessionData.session.user, session: sessionData.session };
+          authError = null;
+        } else {
+          // Try getUser as last resort
+          const { data: checkAuthData } = await supabase.auth.getUser();
+          if (checkAuthData?.user) {
+            console.warn('Auth signup returned 500 error but user was found, attempting to continue...');
+            authData = { user: checkAuthData.user, session: null };
+            authError = null;
+          } else {
+            // User wasn't created - this is a real error
+            throw new Error(`Signup failed: ${authError.message || 'An unexpected error occurred. Please try again.'}`);
+          }
+        }
+      }
+    } else {
+      // For other errors, throw as-is
+      throw authError;
+    }
   }
   
   // CRITICAL: When Confirm email is enabled and user already exists,
@@ -114,13 +162,33 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
-      .single();
+      .maybeSingle();
     
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
       // PGRST116 = not found, which is expected if trigger didn't run
-      // Other errors indicate a real problem
-      console.error('Profile check error:', checkError);
-      throw new Error(`Database error saving new user: ${checkError.message || 'Profile creation failed'}`);
+      // 42501 = insufficient privilege (RLS blocking read) - this is OK, profile exists but we can't read it yet
+      // Other errors might be recoverable
+      if (checkError.code === 'PGRST116') {
+        // Not found - profile doesn't exist, will create it below
+        console.log('Profile not found (PGRST116), will create it');
+      } else if (checkError.code === '42501' || checkError.message?.includes('permission denied') || checkError.message?.includes('row-level security')) {
+        // RLS blocking read - profile likely exists but we can't read it without proper session
+        // This is OK - the trigger created it, we just can't verify it
+        console.log('Profile query blocked by RLS - profile likely exists, trigger should have created it');
+        // Return early - profile exists but we can't read it yet (will be available after email confirmation)
+        return {
+          user: null,
+          email: data.email,
+          needsConfirmation: true,
+        };
+      } else {
+        // Other errors - log but don't throw yet, try to create profile as fallback
+        console.warn('Profile check error (non-critical):', {
+          code: checkError.code,
+          message: checkError.message,
+          details: checkError,
+        });
+      }
     }
 
     if (!checkProfile) {
@@ -133,7 +201,9 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
           .insert({
             id: authData.user.id,
             email: authData.user.email || data.email,
-            display_name: authData.user.user_metadata?.display_name || data.displayName || authData.user.email || 'User',
+            display_name: authData.user.user_metadata?.display_name || 
+                          data.displayName ||
+                          extractDisplayNameFromEmail(authData.user.email || data.email),
           })
           .select()
           .single();
@@ -283,39 +353,123 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
     throw confirmationError;
   }
 
-  // Get user profile
-  // Use maybeSingle() first to check if profile exists, then handle errors more gracefully
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authData.user.id)
-    .maybeSingle();
+  // Wait a moment for the session to be fully established (RLS needs this)
+  // This ensures the auth context is properly set before querying the profile
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-  if (profileError) {
-    // Check if error is "Cannot coerce the result to a single JSON object"
-    // This means multiple rows were returned (shouldn't happen, but handle it)
-    if (profileError.message?.includes('Cannot coerce') || profileError.message?.includes('multiple rows')) {
-      console.error('Multiple profiles found for user:', authData.user.id);
-      // Try to get the first one
-      const { data: profiles, error: multiError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .limit(1);
-      
-      if (multiError || !profiles || profiles.length === 0) {
-        throw new Error('Profile not found. Please contact support.');
+  // Get user profile with retry logic (RLS might need a moment to recognize the session)
+  let profile = null;
+  let profileError = null;
+  const maxRetries = 3;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const { data: profileData, error: error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .maybeSingle();
+    
+    if (error) {
+      profileError = error;
+      // Check if error is "Cannot coerce the result to a single JSON object"
+      if (error.message?.includes('Cannot coerce') || error.message?.includes('multiple rows')) {
+        console.error('Multiple profiles found for user:', authData.user.id);
+        // Try to get the first one
+        const { data: profiles, error: multiError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .limit(1);
+        
+        if (multiError || !profiles || profiles.length === 0) {
+          // Profile doesn't exist - try to create it
+          break;
+        }
+        
+        // Use the first profile and log a warning
+        console.warn('Using first profile from multiple results:', profiles[0].id);
+        return mapProfileToUserProfile(profiles[0]);
       }
       
-      // Use the first profile and log a warning
-      console.warn('Using first profile from multiple results:', profiles[0].id);
-      return mapProfileToUserProfile(profiles[0]);
+      // For RLS or other errors, retry with exponential backoff
+      if (attempt < maxRetries - 1) {
+        const delay = 200 * Math.pow(2, attempt); // 200ms, 400ms, 800ms
+        console.log(`Profile query failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+    } else if (profileData) {
+      profile = profileData;
+      break;
+    } else {
+      // Profile is null - doesn't exist, try to create it
+      break;
     }
-    throw profileError;
   }
-
+  
+  // If profile still not found, try to create it as fallback
   if (!profile) {
-    throw new Error('User profile not found. Please contact support.');
+    console.warn('Profile not found for user after sign in, attempting to create it:', authData.user.id);
+    
+    try {
+      // Extract display name from email if not available in metadata
+      // Note: SignInData doesn't have displayName, so we only use metadata or email
+      const displayName = authData.user.user_metadata?.display_name || 
+                          extractDisplayNameFromEmail(authData.user.email || data.email);
+      
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: authData.user.email || data.email,
+          display_name: displayName,
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        // Check if it's a duplicate key error (profile was created by trigger but query was too fast)
+        if (createError.code === '23505') {
+          // Duplicate key - profile exists, try to fetch it again
+          console.log('Profile creation returned duplicate key, fetching existing profile...');
+          const { data: existingProfile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+          
+          if (fetchError) {
+            console.error('Failed to fetch profile after duplicate key error:', fetchError);
+            throw new Error(`Failed to retrieve user profile: ${fetchError.message || 'Profile query failed'}. Please try signing in again.`);
+          }
+          
+          if (existingProfile) {
+            console.log('Successfully retrieved profile after duplicate key error');
+            return mapProfileToUserProfile(existingProfile);
+          }
+        }
+        
+        console.error('Failed to create profile:', createError);
+        throw new Error(`Failed to create user profile: ${createError.message || 'Profile creation failed'}. Please contact support.`);
+      }
+      
+      if (newProfile) {
+        console.log('Profile created successfully as fallback during sign in');
+        return mapProfileToUserProfile(newProfile);
+      }
+    } catch (fallbackError: any) {
+      console.error('Profile creation fallback failed:', fallbackError);
+      // If creation fails, throw the original error or a helpful message
+      if (profileError) {
+        throw new Error(`User profile not found and could not be created: ${profileError.message || 'Profile query failed'}. Please contact support.`);
+      }
+      throw fallbackError;
+    }
+  }
+  
+  // If we still don't have a profile, throw an error
+  if (!profile) {
+    throw new Error('User profile not found and could not be created. Please contact support.');
   }
 
   return mapProfileToUserProfile(profile);
@@ -682,6 +836,20 @@ export const resendConfirmationEmail = async (email: string): Promise<void> => {
   });
 
   if (error) {
+    // Handle rate limiting gracefully
+    if (error.code === 'over_email_send_rate_limit' || error.status === 429) {
+      // Extract cooldown time from error message if available
+      // Message format: "For security purposes, you can only request this after X seconds."
+      const cooldownMatch = error.message?.match(/(\d+)\s*seconds?/i);
+      const cooldownSeconds = cooldownMatch ? parseInt(cooldownMatch[1], 10) : 60;
+      
+      // Create a custom error with cooldown information
+      const rateLimitError: any = new Error(error.message || 'Email rate limit exceeded');
+      rateLimitError.code = 'RATE_LIMIT';
+      rateLimitError.cooldownSeconds = cooldownSeconds;
+      throw rateLimitError;
+    }
+    
     console.error('=== RESEND ERROR ===', {
       message: error.message,
       code: error.code,
