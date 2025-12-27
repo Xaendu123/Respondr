@@ -231,21 +231,44 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
   });
 
   if (authError) {
-    // Check if error is due to email not being confirmed
     const errorMessage = (authError.message || '').toLowerCase();
+    
+    // Check if error is due to invalid credentials (user doesn't exist or wrong password)
+    // Supabase returns "Invalid login credentials" for both cases (security best practice)
     if (
-      errorMessage.includes('email not confirmed') ||
-      errorMessage.includes('email not verified') ||
-      errorMessage.includes('email confirmation') ||
-      errorMessage.includes('confirm your email') ||
+      errorMessage.includes('invalid login credentials') ||
+      errorMessage.includes('invalid credentials') ||
+      errorMessage.includes('email not found') ||
+      errorMessage.includes('user not found') ||
       authError.status === 400
     ) {
-      // Create a custom error that indicates email confirmation is needed
-      const confirmationError: any = new Error('Email not confirmed');
-      confirmationError.code = 'EMAIL_NOT_CONFIRMED';
-      confirmationError.email = data.email;
-      throw confirmationError;
+      // Check if it's specifically an email confirmation issue
+      // by checking if the user exists but email is not confirmed
+      // We can't distinguish between "user doesn't exist" and "wrong password" for security
+      // But we can check if it's an email confirmation issue by trying to get user info
+      // However, Supabase doesn't expose this, so we'll treat all invalid credentials
+      // as either wrong password or user doesn't exist
+      
+      // Only treat as email confirmation if the error specifically mentions it
+      if (
+        errorMessage.includes('email not confirmed') ||
+        errorMessage.includes('email not verified') ||
+        errorMessage.includes('email confirmation') ||
+        errorMessage.includes('confirm your email')
+      ) {
+        // Create a custom error that indicates email confirmation is needed
+        const confirmationError: any = new Error('Email not confirmed');
+        confirmationError.code = 'EMAIL_NOT_CONFIRMED';
+        confirmationError.email = data.email;
+        throw confirmationError;
+      }
+      
+      // For invalid credentials, throw a generic error (don't reveal if user exists)
+      const invalidCredsError: any = new Error('Invalid email or password');
+      invalidCredsError.code = 'INVALID_CREDENTIALS';
+      throw invalidCredsError;
     }
+    
     throw authError;
   }
   

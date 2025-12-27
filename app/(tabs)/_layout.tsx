@@ -16,9 +16,9 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
   
-  // Redirect to not-logged-in screen if not authenticated
+  // Redirect to login screen if not authenticated
   if (!isLoading && !isAuthenticated) {
-    return <Redirect href="/not-logged-in" />;
+    return <Redirect href="/login" />;
   }
 
   return (

@@ -92,7 +92,7 @@ export default function RegisterScreen() {
       // Only redirect to confirm email screen if signup was successful
       // (confirmationEmail will be null if user is already authenticated)
       if (confirmationEmail !== null) {
-        router.replace({
+        router.push({
           pathname: '/confirm-email',
           params: { email: confirmationEmail || email.trim() },
         });

@@ -69,11 +69,22 @@ export default function LoginScreen() {
       
       // Check if error is due to email not being confirmed
       if (error.code === 'EMAIL_NOT_CONFIRMED' || error.message?.includes('Email not confirmed')) {
-        // Navigate to confirm-email screen with the email
-        router.replace({
+        // Navigate to confirm-email screen with the email (use push to maintain navigation stack)
+        router.push({
           pathname: '/confirm-email',
           params: { email: error.email || email.trim() },
         });
+        return;
+      }
+      
+      // Check if error is due to invalid credentials (user doesn't exist or wrong password)
+      if (error.code === 'INVALID_CREDENTIALS' || 
+          error.message?.includes('Invalid email or password') ||
+          error.message?.includes('Invalid login credentials')) {
+        Alert.alert(
+          t('errors.auth'),
+          t('auth.invalidCredentials') || 'Invalid email or password. Please check your credentials and try again.'
+        );
         return;
       }
       

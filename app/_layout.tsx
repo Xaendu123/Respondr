@@ -547,12 +547,12 @@ function RootLayoutNav() {
                                 segments[0] === 'my-activities';
 
     // If not authenticated and trying to access protected content
-    // BUT: Don't redirect if we're on auth screens (login, register, confirm-email, reset-password, not-found)
+    // BUT: Don't redirect if we're on auth screens (login, register, confirm-email, reset-password, not-found, not-logged-in)
     if (!isAuthenticated && (inAuthGroup || inProtectedScreens)) {
-      // Show not-logged-in screen instead of redirecting to login
+      // Redirect to login screen instead of not-logged-in
       // But only if we're not already on an auth-related screen
       if (!inNotLoggedIn && !inAuthScreens && !inConfirmEmail && !inResetPassword && !inNotFound) {
-        router.replace('/not-logged-in' as any);
+        router.replace('/login' as any);
       }
     } else if (isAuthenticated && inAuthScreens) {
       // Redirect to main app if authenticated and on login/register screens only
@@ -570,19 +570,88 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerShown: false,
+        // Default slide animation from right (iOS/Android default)
+        animation: 'default',
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: false }} />
-      <Stack.Screen name="confirm-email" options={{ headerShown: false }} />
-      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
-      <Stack.Screen name="not-found" options={{ headerShown: false }} />
-      <Stack.Screen name="not-logged-in" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
-      <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
-      <Stack.Screen name="badges" />
-      <Stack.Screen name="my-activities" options={{ headerShown: false }} />
+      <Stack.Screen 
+        name="login" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+        }} 
+      />
+      <Stack.Screen 
+        name="register" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+        }} 
+      />
+      <Stack.Screen 
+        name="confirm-email" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+        }} 
+      />
+      <Stack.Screen 
+        name="reset-password" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+        }} 
+      />
+      <Stack.Screen 
+        name="not-found" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+        }} 
+      />
+      <Stack.Screen 
+        name="not-logged-in" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+        }} 
+      />
+      <Stack.Screen 
+        name="settings" 
+        options={{ 
+          presentation: "modal",
+          animation: 'default',
+        }} 
+      />
+      <Stack.Screen 
+        name="edit-profile" 
+        options={{ 
+          presentation: "modal",
+          animation: 'default',
+        }} 
+      />
+      <Stack.Screen 
+        name="badges" 
+        options={{
+          animation: 'default',
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen 
+        name="my-activities" 
+        options={{ 
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+        }} 
+      />
     </Stack>
   );
 }

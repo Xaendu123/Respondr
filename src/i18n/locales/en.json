@@ -292,6 +292,7 @@
     "organizationPlaceholder": "e.g. Volunteer Fire Department",
     "createOrganization": "Create new organization",
     "loginFailed": "Login failed",
+    "invalidCredentials": "Invalid email or password. Please check your credentials and try again.",
     "registrationFailed": "Registration failed",
     "demoHint": "Demo mode: Use any email and password to test",
     "confirmEmailTitle": "Check Your Email",

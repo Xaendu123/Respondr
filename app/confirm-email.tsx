@@ -26,8 +26,32 @@ export default function ConfirmEmailScreen() {
   
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [hasAutoSent, setHasAutoSent] = useState(false);
   
   const styles = createStyles(theme);
+  
+  // Automatically send confirmation email when screen opens
+  React.useEffect(() => {
+    if (email && !hasAutoSent) {
+      const sendInitialEmail = async () => {
+        try {
+          setIsResending(true);
+          await resendConfirmationEmail(email);
+          setHasAutoSent(true);
+          // Start 60 second cooldown
+          setResendCooldown(60);
+          hapticSuccess();
+        } catch (error: any) {
+          // Silently fail on auto-send - user can manually resend if needed
+          console.error('Auto-send confirmation email failed:', error);
+        } finally {
+          setIsResending(false);
+        }
+      };
+      
+      sendInitialEmail();
+    }
+  }, [email, hasAutoSent]);
   
   // Countdown timer effect
   React.useEffect(() => {
