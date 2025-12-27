@@ -5,14 +5,21 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useTranslation } from "../../src/hooks/useTranslation";
+import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme } from "../../src/providers/ThemeProvider";
 import { hapticLight } from "../../src/utils/haptics";
 
 export default function TabsLayout() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Redirect to not-logged-in screen if not authenticated
+  if (!isLoading && !isAuthenticated) {
+    return <Redirect href="/not-logged-in" />;
+  }
 
   return (
     <Tabs

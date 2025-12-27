@@ -213,13 +213,39 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
   }
 
   // Get user profile
+  // Use maybeSingle() first to check if profile exists, then handle errors more gracefully
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', authData.user.id)
-    .single();
+    .maybeSingle();
 
-  if (profileError) throw profileError;
+  if (profileError) {
+    // Check if error is "Cannot coerce the result to a single JSON object"
+    // This means multiple rows were returned (shouldn't happen, but handle it)
+    if (profileError.message?.includes('Cannot coerce') || profileError.message?.includes('multiple rows')) {
+      console.error('Multiple profiles found for user:', authData.user.id);
+      // Try to get the first one
+      const { data: profiles, error: multiError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .limit(1);
+      
+      if (multiError || !profiles || profiles.length === 0) {
+        throw new Error('Profile not found. Please contact support.');
+      }
+      
+      // Use the first profile and log a warning
+      console.warn('Using first profile from multiple results:', profiles[0].id);
+      return mapProfileToUserProfile(profiles[0]);
+    }
+    throw profileError;
+  }
+
+  if (!profile) {
+    throw new Error('User profile not found. Please contact support.');
+  }
 
   return mapProfileToUserProfile(profile);
 };
@@ -253,9 +279,32 @@ export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    // Check if error is "Cannot coerce the result to a single JSON object"
+    if (error.message?.includes('Cannot coerce') || error.message?.includes('multiple rows')) {
+      console.error('Multiple profiles found for user:', user.id);
+      // Try to get the first one
+      const { data: profiles, error: multiError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .limit(1);
+      
+      if (multiError || !profiles || profiles.length === 0) {
+        return null;
+      }
+      
+      console.warn('Using first profile from multiple results:', profiles[0].id);
+      return mapProfileToUserProfile(profiles[0]);
+    }
+    throw error;
+  }
+
+  if (!profile) {
+    return null;
+  }
 
   return mapProfileToUserProfile(profile);
 };
@@ -410,9 +459,28 @@ export async function handleOAuthCallback(url: string): Promise<UserProfile | nu
     .from('profiles')
     .select('*')
     .eq('id', data.session.user.id)
-    .single();
+    .maybeSingle();
 
   if (profileError) {
+    // Check if error is "Cannot coerce the result to a single JSON object"
+    if (profileError.message?.includes('Cannot coerce') || profileError.message?.includes('multiple rows')) {
+      console.error('Multiple profiles found for user:', data.session.user.id);
+      // Try to get the first one
+      const { data: profiles, error: multiError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.session.user.id)
+        .limit(1);
+      
+      if (multiError || !profiles || profiles.length === 0) {
+        throw new Error('User profile not found.');
+      }
+      
+      console.warn('Using first profile from multiple results:', profiles[0].id);
+      const userProfile = mapProfileToUserProfile(profiles[0]);
+      await storeUser(userProfile);
+      return userProfile;
+    }
     throw new Error(profileError.message);
   }
   if (!profileData) {

@@ -280,7 +280,11 @@
     "confirmationEmailSent": "Bestätigungs-E-Mail gesendet! Bitte überprüfe dein Postfach.",
     "resendConfirmationFailed": "Fehler beim erneuten Senden der Bestätigungs-E-Mail. Bitte versuche es erneut.",
     "emailRequired": "E-Mail-Adresse ist erforderlich",
-    "backToLogin": "Zurück zur Anmeldung"
+    "backToLogin": "Zurück zur Anmeldung",
+    "notLoggedIn": "Authentifizierung erforderlich",
+    "notLoggedInMessage": "Bitte melde dich an, um auf diesen Inhalt zuzugreifen.",
+    "notLoggedInHelp": "Du musst angemeldet sein, um diese Seite anzuzeigen. Bitte melde dich an, um fortzufahren.",
+    "goToLogin": "Zur Anmeldung"
   },
   "errors": {
     "generic": "Etwas ist schiefgelaufen",
@@ -291,7 +295,11 @@
     "validation": "Ungültige Eingabe",
     "auth": "Authentifizierungsfehler",
     "notAuthenticated": "Du musst angemeldet sein, um diese Aktion durchzuführen",
-    "permission": "Berechtigung erforderlich"
+    "permission": "Berechtigung erforderlich",
+    "routeNotFound": "Route nicht gefunden",
+    "routeNotFoundMessage": "Der Link, den du geöffnet hast, ist ungültig oder abgelaufen.",
+    "routeNotFoundHelp": "Wenn du versucht hast, dein Passwort zurückzusetzen oder deine E-Mail zu bestätigen, bitte fordere einen neuen Link an.",
+    "goToLogin": "Zur Anmeldung"
   },
   "privacy": {
     "title": "Datenschutz",

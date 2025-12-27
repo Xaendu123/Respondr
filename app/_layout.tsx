@@ -17,12 +17,250 @@ function RootLayoutNav() {
 
   // Handle deep links for OAuth callbacks and password reset
   useEffect(() => {
+    // Track processed URLs to prevent duplicate handling
+    const processedUrls = new Set<string>();
+    
+    const handleEmailConfirmation = async (url: string, urlObj: URL): Promise<boolean> => {
+      // Check if user is already authenticated
+      const { data: existingSession } = await supabase.auth.getSession();
+      if (existingSession?.session) {
+        // User is already logged in - navigate to home
+        await refreshUser();
+        router.replace('/(tabs)/log');
+        return true;
+      }
+
+      // Extract tokens from various possible locations
+      const tokenHash = urlObj.searchParams.get('token_hash') || 
+                       urlObj.hash.match(/token_hash=([^&]+)/)?.[1] ||
+                       urlObj.searchParams.get('token');
+      
+      const type = urlObj.searchParams.get('type') || 
+                   urlObj.hash.match(/type=([^&]+)/)?.[1] || 
+                   'signup';
+      
+      // Check for direct session tokens in hash (alternative format)
+      const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1];
+      const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1];
+      
+      // Helper function to verify OTP with retry logic
+      const verifyOtpWithRetry = async (token: string, otpType: string, retries = 2): Promise<{ success: boolean; session: any }> => {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const decodedToken = decodeURIComponent(token);
+            
+            // For signup confirmations, ensure we use 'signup' type
+            const finalOtpType = (otpType === 'signup' || type === 'signup') ? 'signup' : otpType;
+            
+            console.log(`Verifying OTP (attempt ${attempt + 1}/${retries + 1}):`, { 
+              type: finalOtpType, 
+              tokenLength: decodedToken.length 
+            });
+            
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: decodedToken,
+              type: finalOtpType as any,
+            });
+            
+            if (error) {
+              console.error(`OTP verification error (attempt ${attempt + 1}):`, error);
+              
+              // Handle specific error cases
+              const errorMsg = error.message?.toLowerCase() || '';
+              
+              // If token already used or user already confirmed, check if they're logged in
+              if (errorMsg.includes('already') || errorMsg.includes('expired') || errorMsg.includes('invalid')) {
+                // Check if user is now authenticated (might have been confirmed by another process)
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session) {
+                  console.log('User already authenticated despite error, using existing session');
+                  return { success: true, session: sessionData.session };
+                }
+                
+                // If it's the last attempt, return the error
+                if (attempt === retries) {
+                  return { success: false, session: null };
+                }
+              } else {
+                // For other errors, retry if we have attempts left
+                if (attempt < retries) {
+                  console.log(`Retrying OTP verification in ${1000 * (attempt + 1)}ms...`);
+                  await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+                  continue;
+                }
+                return { success: false, session: null };
+              }
+            }
+            
+            if (data?.session) {
+              console.log('OTP verified successfully, session created:', {
+                userId: data.session.user?.id,
+                emailConfirmed: !!data.session.user?.email_confirmed_at
+              });
+              return { success: true, session: data.session };
+            } else {
+              console.warn('OTP verification returned no session');
+              // Check if session was created anyway
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (sessionData?.session) {
+                console.log('Session found after verification, using it');
+                return { success: true, session: sessionData.session };
+              }
+            }
+          } catch (err) {
+            console.error(`Verification attempt ${attempt + 1} failed:`, err);
+            if (attempt === retries) {
+              return { success: false, session: null };
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          }
+        }
+        return { success: false, session: null };
+      };
+      
+      // Method 1: Direct session tokens (preferred - fastest)
+      // This happens when Supabase redirects with tokens in the URL hash
+      if (accessToken && refreshToken) {
+        try {
+          console.log('Setting session from direct tokens (email confirmation)');
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: decodeURIComponent(accessToken),
+            refresh_token: decodeURIComponent(refreshToken),
+          });
+          
+          if (sessionError) {
+            console.error('Email confirmation session error:', sessionError);
+            // Fall through to token hash verification
+          } else if (sessionData?.session) {
+            console.log('Session set from tokens, verifying email confirmation');
+            
+            // Verify that the user's email is confirmed
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              console.log('User email confirmed:', !!user.email_confirmed_at);
+              
+              // Refresh user profile to ensure everything is up to date
+              await refreshUser();
+              
+              // Navigate to home
+              router.replace('/(tabs)/log');
+              return true;
+            } else {
+              console.error('No user found after setting session');
+              // Fall through to token hash verification
+            }
+          }
+        } catch (err) {
+          console.error('Error setting session from tokens:', err);
+          // Fall through to token hash verification
+        }
+      }
+      
+      // Method 2: Token hash verification (for signup/email confirmation)
+      if (tokenHash) {
+        // Determine OTP type - prioritize signup for email confirmation
+        const otpType = type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email';
+        
+        console.log('Verifying OTP for email confirmation:', { type: otpType, hasToken: !!tokenHash });
+        
+        const result = await verifyOtpWithRetry(tokenHash, otpType);
+        
+        if (result.success && result.session) {
+          // OTP verified successfully - session is now set
+          console.log('OTP verified successfully, session created');
+          
+          // Verify that the user's email is confirmed
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && !user.email_confirmed_at) {
+            // If email is not confirmed yet, wait a moment and check again
+            // (Supabase might need a moment to update)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: { user: updatedUser } } = await supabase.auth.getUser();
+            if (updatedUser && !updatedUser.email_confirmed_at) {
+              console.warn('Email confirmation: User email not confirmed after OTP verification');
+            }
+          }
+          
+          // Refresh user profile to ensure everything is up to date
+          await refreshUser();
+          
+          // Verify session is still valid before navigating
+          const { data: sessionCheck } = await supabase.auth.getSession();
+          if (sessionCheck?.session) {
+            console.log('Email confirmed and user signed in, navigating to home');
+            router.replace('/(tabs)/log');
+            return true;
+          } else {
+            console.error('Session lost after OTP verification');
+            Alert.alert(
+              t('errors.auth'),
+              t('auth.confirmationEmailInvalid') || 'Session could not be established. Please try logging in.'
+            );
+            router.replace('/login');
+            return true;
+          }
+        } else {
+          // OTP verification failed - check if user is already authenticated
+          console.log('OTP verification failed, checking if user is already authenticated');
+          const { data: finalSession } = await supabase.auth.getSession();
+          if (finalSession?.session) {
+            // User is already authenticated - might have been confirmed by another process
+            console.log('User already authenticated, refreshing and navigating');
+            await refreshUser();
+            router.replace('/(tabs)/log');
+            return true;
+          }
+          
+          // Verification failed and no session
+          console.error('OTP verification failed and no session found');
+          Alert.alert(
+            t('errors.auth'),
+            t('auth.confirmationEmailInvalid') || 'Invalid or expired confirmation link. Please request a new confirmation email.'
+          );
+          router.replace('/login');
+          return true;
+        }
+      }
+      
+      // Method 3: Wait for automatic verification (Supabase might handle it)
+      return new Promise<boolean>((resolve) => {
+        setTimeout(async () => {
+          await refreshUser();
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session) {
+            router.replace('/(tabs)/log');
+            resolve(true);
+          } else {
+            Alert.alert(
+              t('errors.auth'),
+              t('auth.confirmationEmailInvalid') || 'Could not verify email. Please request a new confirmation email.'
+            );
+            router.replace('/login');
+            resolve(true);
+          }
+        }, 1500);
+      });
+    };
+
     const handleDeepLink = async (url: string | null) => {
       if (!url) return;
 
       // Ignore Expo development server URLs (exp://)
       if (url.startsWith('exp://')) {
         return;
+      }
+
+      // Prevent duplicate processing
+      if (processedUrls.has(url)) {
+        console.log('Skipping already processed URL:', url);
+        return;
+      }
+      processedUrls.add(url);
+      
+      // Clean up old URLs from the set (keep last 10)
+      if (processedUrls.size > 10) {
+        const urlsArray = Array.from(processedUrls);
+        urlsArray.slice(0, urlsArray.length - 10).forEach(u => processedUrls.delete(u));
       }
 
       let handled = false;
@@ -34,56 +272,12 @@ function RootLayoutNav() {
         handled = true;
         try {
           const urlObj = new URL(url);
-          const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.searchParams.get('token');
-          const type = urlObj.searchParams.get('type') || 'signup';
-          
-          if (!tokenHash) {
-            Alert.alert(
-              t('errors.auth'),
-              t('auth.confirmationEmailInvalid')
-            );
-            router.replace('/login');
-            return;
-          }
-          
-          // Verify the token hash to get a session
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: decodeURIComponent(tokenHash),
-            type: type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email',
-          });
-          
-          if (error) {
-            Alert.alert(
-              t('errors.auth'),
-              error.message || t('auth.confirmationEmailInvalid')
-            );
-            router.replace('/login');
-          } else if (data?.session) {
-            await refreshUser();
-            
-            if (type === 'recovery') {
-              // Password reset - navigate to reset password screen
-              router.replace({
-                pathname: '/reset-password',
-                params: { url },
-              });
-            } else {
-              // Email confirmation - user is now logged in, navigate to home
-              router.replace('/(tabs)/log');
-            }
-          } else {
-            console.error('=== NO SESSION AFTER DIRECT CONFIRMATION ===');
-            Alert.alert(
-              t('errors.auth'),
-              t('auth.confirmationEmailInvalid')
-            );
-            router.replace('/login');
-          }
+          await handleEmailConfirmation(url, urlObj);
         } catch (error) {
           console.error('=== DIRECT CONFIRMATION EXCEPTION ===', error);
           Alert.alert(
             t('errors.auth'),
-            t('auth.confirmationEmailInvalid')
+            t('auth.confirmationEmailInvalid') || 'Failed to process confirmation link.'
           );
           router.replace('/login');
         }
@@ -92,40 +286,10 @@ function RootLayoutNav() {
       else if (url.includes('auth-callback')) {
         handled = true;
         try {
+          const urlObj = new URL(url);
           // Check if it's an email confirmation (type=signup) or OAuth
           if (url.includes('type=signup') || url.includes('type=email')) {
-            // Email confirmation - extract tokens from URL
-            const urlObj = new URL(url);
-            const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.searchParams.get('token');
-            const type = urlObj.searchParams.get('type') || 'email';
-            
-            if (tokenHash) {
-              // Verify the email confirmation token
-              const { data, error } = await supabase.auth.verifyOtp({
-                token_hash: tokenHash,
-                type: type as any,
-              });
-              
-              if (error) {
-                console.error('Email confirmation error:', error);
-                router.replace('/login');
-              } else if (data?.session) {
-                // Email confirmed - user is now logged in
-                await refreshUser();
-                router.replace('/(tabs)/log');
-              }
-            } else {
-              // No token hash - wait for auth state to update
-              setTimeout(async () => {
-                await refreshUser();
-                const { data: sessionData } = await supabase.auth.getSession();
-                if (sessionData?.session) {
-                  router.replace('/(tabs)/log');
-                } else {
-                  router.replace('/login');
-                }
-              }, 1500);
-            }
+            await handleEmailConfirmation(url, urlObj);
           } else {
             // OAuth callback
             await handleOAuthCallback(url);
@@ -271,95 +435,19 @@ function RootLayoutNav() {
           router.replace('/login');
         }
       }
-      // Check if this is an email confirmation link
-      else if (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('type=signup') || url.includes('type=email')) {
-        handled = true;
-        try {
-          // Extract token and type from URL
-          const urlObj = new URL(url);
-          const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.hash.match(/token_hash=([^&]+)/)?.[1];
-          const type = urlObj.searchParams.get('type') || urlObj.hash.match(/type=([^&]+)/)?.[1] || 'signup';
-          
-          // Also check for access_token in hash (alternative format)
-          const accessToken = urlObj.hash.match(/access_token=([^&]+)/)?.[1];
-          const refreshToken = urlObj.hash.match(/refresh_token=([^&]+)/)?.[1];
-          
-          if (accessToken && refreshToken) {
-            // Direct session tokens - set session immediately
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: decodeURIComponent(accessToken),
-              refresh_token: decodeURIComponent(refreshToken),
-            });
-            
-            if (sessionError) {
-              console.error('Email confirmation session error:', sessionError);
-              router.replace('/login');
-            } else if (sessionData?.session) {
-              // Email confirmed and user logged in
-              await refreshUser();
-              router.replace('/(tabs)/log');
-            } else {
-              router.replace('/login');
-            }
-          } else if (tokenHash) {
-            // Token hash format - verify OTP
-            const { data, error } = await supabase.auth.verifyOtp({
-              token_hash: decodeURIComponent(tokenHash),
-              type: type as any,
-            });
-            
-            if (error) {
-              Alert.alert('Error', 'Invalid or expired confirmation link. Please request a new confirmation email.');
-              router.replace('/login');
-            } else if (data?.session) {
-              // Email confirmed - user is now logged in
-              await refreshUser();
-              router.replace('/(tabs)/log');
-            } else {
-              router.replace('/login');
-            }
-          } else {
-            // Check if there's a token (not hash) that needs verification
-            const token = urlObj.searchParams.get('token');
-            if (token && (type === 'signup' || type === 'email')) {
-              // Try to verify with token directly (though typically we need token_hash)
-              // Sometimes the verification happens automatically when URL is opened
-              setTimeout(async () => {
-                try {
-                  await refreshUser();
-                  const { data: sessionData } = await supabase.auth.getSession();
-                  if (sessionData?.session) {
-                    router.replace('/(tabs)/log');
-                  } else {
-                    Alert.alert('Error', 'Could not verify email. Please request a new confirmation email.');
-                    router.replace('/login');
-                  }
-                } catch (error) {
-                  router.replace('/login');
-                }
-              }, 1500);
-              return; // Exit early, setTimeout will handle navigation
-            } else {
-              // No tokens found - wait for auth state to update (Supabase might handle it automatically)
-              setTimeout(async () => {
-                try {
-                  await refreshUser();
-                  const { data: sessionData } = await supabase.auth.getSession();
-                  if (sessionData?.session) {
-                    router.replace('/(tabs)/log');
-                  } else {
-                    Alert.alert('Error', 'Could not verify email. Please request a new confirmation email.');
-                    router.replace('/login');
-                  }
-                } catch (error) {
-                  router.replace('/login');
-                }
-              }, 1500);
-            }
+      // Check if this is an email confirmation link (generic catch-all)
+      // Only process if not already handled by more specific handlers above
+      else if (!handled && (url.includes('confirm') || url.includes('verify') || url.includes('token=') || url.includes('type=signup') || url.includes('type=email'))) {
+        // Skip if it's a password reset (handled separately)
+        if (!url.includes('type=recovery') && !url.includes('reset-password')) {
+          handled = true;
+          try {
+            const urlObj = new URL(url);
+            await handleEmailConfirmation(url, urlObj);
+          } catch (error) {
+            console.error('Email confirmation error:', error);
+            router.replace('/login');
           }
-        } catch (error) {
-          console.error('Email confirmation error:', error);
-          router.replace('/login');
         }
       }
       
@@ -376,22 +464,10 @@ function RootLayoutNav() {
         }
       }
       
-      // If deep link was not handled (invalid/unknown), route based on auth state
+      // If deep link was not handled (invalid/unknown), show not found screen
       if (!handled) {
         console.warn('Invalid or unknown deep link:', url);
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session) {
-            // User is authenticated - route to home
-            router.replace('/(tabs)/log');
-          } else {
-            // No session - route to login
-            router.replace('/login');
-          }
-        } catch (error) {
-          console.error('Error checking session for invalid deep link:', error);
-          router.replace('/login');
-        }
+        router.replace('/not-found' as any);
       }
     };
 
@@ -414,16 +490,30 @@ function RootLayoutNav() {
     const inAuthScreens = segments[0] === 'login' || segments[0] === 'register';
     const inConfirmEmail = segments[0] === 'confirm-email';
     const inResetPassword = segments[0] === 'reset-password';
+    const inNotLoggedIn = (segments[0] as string) === 'not-logged-in';
+    const inNotFound = (segments[0] as string) === 'not-found';
+    // Protected screens that require authentication
+    const inProtectedScreens = segments[0] === 'settings' || 
+                                segments[0] === 'edit-profile' || 
+                                segments[0] === 'badges' || 
+                                segments[0] === 'my-activities';
 
-    if (!isAuthenticated && inAuthGroup) {
-      // Redirect to login if not authenticated and trying to access protected routes
-      router.replace('/login');
+    // If not authenticated and trying to access protected content
+    if (!isAuthenticated && (inAuthGroup || inProtectedScreens)) {
+      // Show not-logged-in screen instead of redirecting to login
+      if (!inNotLoggedIn) {
+        router.replace('/not-logged-in' as any);
+      }
     } else if (isAuthenticated && inAuthScreens) {
       // Redirect to main app if authenticated and on login/register screens only
+      router.replace('/(tabs)/log');
+    } else if (isAuthenticated && inNotLoggedIn) {
+      // If authenticated but on not-logged-in screen, go to home
       router.replace('/(tabs)/log');
     }
     // Don't redirect from confirm-email or reset-password screens - let user stay there
     // Don't redirect from register screen when not authenticated (user might be registering)
+    // Don't redirect from not-found screen
   }, [isAuthenticated, segments, isLoading, router]);
 
   return (
@@ -437,6 +527,8 @@ function RootLayoutNav() {
       <Stack.Screen name="register" options={{ headerShown: false }} />
       <Stack.Screen name="confirm-email" options={{ headerShown: false }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+      <Stack.Screen name="not-found" options={{ headerShown: false }} />
+      <Stack.Screen name="not-logged-in" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
       <Stack.Screen name="badges" />

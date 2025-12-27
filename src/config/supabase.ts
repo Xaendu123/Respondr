@@ -16,9 +16,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 
-// Try to get from app.config.js (via Constants) first, fallback to process.env
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// In EAS builds, environment variables are only available via Constants.expoConfig.extra
+// process.env is NOT available at runtime in production builds
+// Priority: Constants.expoConfig.extra (from app.config.js) > process.env (dev only)
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 
+                     (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL : undefined);
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 
+                        (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY : undefined);
 
 // For Expo Go, allow missing env vars with a warning (they'll be undefined)
 // This prevents the app from crashing during development
@@ -118,15 +122,28 @@ if (__DEV__) {
   });
 }
 
-// In production, log a test connection attempt on startup
-if (!__DEV__ && supabaseUrl && supabaseAnonKey) {
-  // Test connection silently in background
-  supabase.auth.getSession().catch((error) => {
-    console.error('Supabase connection test failed:', {
-      error: error.message,
-      url: supabaseUrl.substring(0, 40) + '...',
-      timestamp: new Date().toISOString(),
-    });
+// In production, log configuration and test connection
+if (!__DEV__) {
+  // Log configuration (helps debug TestFlight issues)
+  console.log('Supabase Configuration Check:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
+    keyLength: supabaseAnonKey?.length || 0,
+    fromConstants: !!Constants.expoConfig?.extra?.supabaseUrl,
+    fromProcessEnv: !!process.env.EXPO_PUBLIC_SUPABASE_URL,
+    constantsExtra: Object.keys(Constants.expoConfig?.extra || {}),
   });
+  
+  // Test connection silently in background if we have config
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase.auth.getSession().catch((error) => {
+      console.error('Supabase connection test failed:', {
+        error: error.message,
+        url: supabaseUrl.substring(0, 40) + '...',
+        timestamp: new Date().toISOString(),
+      });
+    });
+  }
 }
 

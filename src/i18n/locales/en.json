@@ -304,7 +304,11 @@
     "confirmationEmailSent": "Confirmation email sent! Please check your inbox.",
     "resendConfirmationFailed": "Failed to resend confirmation email. Please try again.",
     "emailRequired": "Email address is required",
-    "backToLogin": "Back to Login"
+    "backToLogin": "Back to Login",
+    "notLoggedIn": "Authentication Required",
+    "notLoggedInMessage": "Please log in to access this content.",
+    "notLoggedInHelp": "You need to be logged in to view this page. Please sign in to continue.",
+    "goToLogin": "Go to Login"
   },
   "errors": {
     "generic": "Something went wrong",
@@ -315,7 +319,11 @@
     "validation": "Invalid input",
     "auth": "Authentication error",
     "notAuthenticated": "You must be logged in to perform this action",
-    "permission": "Permission Required"
+    "permission": "Permission Required",
+    "routeNotFound": "Route Not Found",
+    "routeNotFoundMessage": "The link you opened is invalid or has expired.",
+    "routeNotFoundHelp": "If you were trying to reset your password or confirm your email, please request a new link.",
+    "goToLogin": "Go to Login"
   },
   "privacy": {
     "title": "Privacy",

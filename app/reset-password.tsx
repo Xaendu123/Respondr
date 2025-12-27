@@ -162,30 +162,29 @@ export default function ResetPasswordScreen() {
       
       hapticSuccess();
       
-      // Clear loading state before showing alert and navigating
+      // Clear loading state immediately
       setLoading(false);
       
-      Alert.alert(
-        t('auth.passwordResetSuccess'),
-        t('auth.passwordResetSuccessMessage'),
-        [
-          {
-            text: t('common.ok'),
-            onPress: () => {
-              router.replace('/login');
-            },
-          },
-        ]
-      );
+      // Password reset successful - navigate immediately
+      // Don't wait for Alert to be dismissed
+      router.replace('/login');
+      
+      // Show success message after a short delay to allow navigation
+      setTimeout(() => {
+        Alert.alert(
+          t('auth.passwordResetSuccess'),
+          t('auth.passwordResetSuccessMessage'),
+          [{ text: t('common.ok') }]
+        );
+      }, 300);
     } catch (error: any) {
       hapticError();
       console.error('Password reset error:', error);
+      setLoading(false); // Clear loading on error
       Alert.alert(
         t('errors.auth'),
         error.message || t('auth.passwordResetFailed')
       );
-    } finally {
-      setLoading(false);
     }
   };
   
