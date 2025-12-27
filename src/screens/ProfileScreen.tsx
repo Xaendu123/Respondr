@@ -5,95 +5,25 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, Keyboard, Modal, ScrollView, StatusBar, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Autocomplete, Avatar, Button, Card, Input, Text } from '../components/ui';
-import { supabase } from '../config/supabase';
+import React from 'react';
+import { Alert, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar, Button, Card, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
-import { updateProfile } from '../services/supabase/authService';
-import { searchOrganizations } from '../services/supabase/organizationsService';
-import { hapticSuccess } from '../utils/haptics';
+import { resetPassword } from '../services/supabase/authService';
 
 export function ProfileScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout } = useAuth();
   const { activities } = useActivities('mine');
-  
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [organization, setOrganization] = useState(user?.organization || '');
-  const [rank, setRank] = useState(user?.rank || '');
-  const [location, setLocation] = useState(user?.location || '');
-  const [bio, setBio] = useState(user?.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.avatar);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [organizations, setOrganizations] = useState<string[]>([]);
-  const organizationSearchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  // Handle organization search
-  const handleOrganizationChange = async (text: string) => {
-    setOrganization(text);
-    
-    // Clear previous timeout
-    if (organizationSearchTimeoutRef.current) {
-      clearTimeout(organizationSearchTimeoutRef.current);
-    }
-    
-    if (text.trim().length >= 2) {
-      // Debounce organization search
-      organizationSearchTimeoutRef.current = setTimeout(async () => {
-        try {
-          const results = await searchOrganizations(text.trim());
-          setOrganizations(results);
-        } catch (error) {
-          console.warn('Could not search organizations:', error);
-          setOrganizations([]);
-        }
-      }, 300);
-    } else {
-      setOrganizations([]);
-    }
-  };
-
-  const handleOrganizationSelect = (selectedOrg: string) => {
-    setOrganization(selectedOrg);
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (organizationSearchTimeoutRef.current) {
-        clearTimeout(organizationSearchTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Update form when user changes
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName || '');
-      setLastName(user.lastName || '');
-      setDisplayName(user.displayName);
-      setOrganization(user.organization || '');
-      setRank(user.rank || '');
-      setLocation(user.location || '');
-      setBio(user.bio || '');
-      setAvatarUrl(user.avatar);
-    }
-  }, [user]);
+  const insets = useSafeAreaInsets();
   
   // Calculate stats from activities
   const stats = {
@@ -118,190 +48,12 @@ export function ProfileScreen() {
   
   const styles = createStyles(theme);
   
-  const handleAvatarPick = async () => {
-    try {
-      // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          t('common.permissionRequired'),
-          t('profile.photoPermissionRequired')
-        );
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      Alert.alert(t('errors.generic'), t('errors.emailRequired'));
         return;
       }
 
-      // Show options: camera or library
-      Alert.alert(
-        t('profile.selectAvatarSource'),
-        '',
-        [
-          {
-            text: t('profile.takePhoto'),
-            onPress: async () => {
-              const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-              if (cameraStatus.status !== 'granted') {
-                Alert.alert(
-                  t('common.permissionRequired'),
-                  t('profile.cameraPermissionRequired')
-                );
-                return;
-              }
-              const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.8,
-              });
-              if (!result.canceled) {
-                await uploadAvatar(result.assets[0].uri);
-              }
-            },
-          },
-          {
-            text: t('profile.chooseFromLibrary'),
-            onPress: async () => {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.8,
-              });
-              if (!result.canceled) {
-                await uploadAvatar(result.assets[0].uri);
-              }
-            },
-          },
-          {
-            text: t('common.cancel'),
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert(t('errors.generic'), t('profile.avatarUploadError'));
-    }
-  };
-
-  const uploadAvatar = async (imageUri: string) => {
-    if (!user) return;
-
-    setUploadingAvatar(true);
-    try {
-      console.log('=== AVATAR UPLOAD START ===', { imageUri, userId: user.id });
-      
-      // Note: Old avatar cleanup is handled by database trigger (cleanup_old_avatars_trigger)
-      // The trigger automatically deletes old avatars when a new one is uploaded
-      
-      // Read file as base64 using expo-file-system
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: 'base64' as any,
-      });
-
-      // Determine file extension and MIME type
-      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-      const mimeType = fileExt === 'png' ? 'image/png' : fileExt === 'jpeg' || fileExt === 'jpg' ? 'image/jpeg' : 'image/jpeg';
-      
-      // Create file name
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      console.log('=== AVATAR UPLOAD INFO ===', {
-        fileName,
-        fileExt,
-        mimeType,
-        base64Length: base64.length,
-      });
-
-      // Convert base64 to ArrayBuffer (works better in React Native than Blob)
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const arrayBuffer = byteArray.buffer;
-
-      // Upload to Supabase storage using ArrayBuffer
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, arrayBuffer, {
-          contentType: mimeType,
-          upsert: true,
-        });
-
-      console.log('=== AVATAR UPLOAD RESPONSE ===', {
-        hasError: !!uploadError,
-        error: uploadError,
-        data: uploadData,
-      });
-
-      if (uploadError) {
-        console.error('=== AVATAR UPLOAD ERROR ===', uploadError);
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      console.log('=== AVATAR PUBLIC URL ===', { publicUrl });
-
-      // Update profile with new avatar URL
-      await updateProfile({ avatar: publicUrl });
-      setAvatarUrl(publicUrl);
-
-      // Refresh user data
-      await refreshUser();
-      hapticSuccess();
-
-      console.log('=== AVATAR UPLOAD SUCCESS ===');
-      Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
-    } catch (error: any) {
-      console.error('=== AVATAR UPLOAD FAILED ===', {
-        error: error,
-        message: error?.message,
-        code: error?.code,
-        statusCode: error?.statusCode,
-        fullError: JSON.stringify(error, null, 2),
-      });
-      const errorMessage = error?.message || t('profile.avatarUploadError');
-      Alert.alert(t('errors.generic'), errorMessage);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      await updateProfile({
-        firstName,
-        lastName,
-        displayName,
-        organization,
-        rank,
-        location,
-        bio,
-        avatar: avatarUrl,
-      });
-      
-      // Refresh user data from Supabase
-      await refreshUser();
-      
-      setEditModalVisible(false);
-      Alert.alert(t('common.success'), t('profile.updateSuccess'));
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      Alert.alert(t('errors.generic'), t('profile.updateError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handlePasswordReset = () => {
     Alert.alert(
       t('profile.resetPassword'),
       t('profile.resetPasswordConfirm'),
@@ -309,8 +61,17 @@ export function ProfileScreen() {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('profile.resetPassword'),
-          onPress: () => {
+          onPress: async () => {
+            try {
+              await resetPassword(user.email);
             Alert.alert(t('common.success'), t('profile.resetPasswordSent'));
+            } catch (error: any) {
+              console.error('Password reset error:', error);
+              Alert.alert(
+                t('errors.generic'),
+                error?.message || t('auth.resetPasswordFailed')
+              );
+            }
           },
         },
       ]
@@ -342,17 +103,27 @@ export function ProfileScreen() {
           <Text variant="headingMedium" color="textSecondary" style={styles.emptyText}>
             {t('profile.notLoggedIn')}
           </Text>
+          <Button
+            variant="primary"
+            onPress={() => router.push('/login')}
+            style={styles.loginButton}
+          >
+            <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+            <Text variant="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: theme.spacing.sm }}>
+              {t('auth.login')}
+            </Text>
+          </Button>
         </View>
       </SafeAreaView>
     );
   }
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.gradientStart} translucent={true} />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.huge + insets.bottom + 60 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header with Gradient */}
@@ -384,7 +155,7 @@ export function ProfileScreen() {
             <View style={styles.buttonRow}>
               <Button
                 variant="outline"
-                onPress={() => setEditModalVisible(true)}
+                onPress={() => router.push('/edit-profile')}
                 style={styles.editButton}
               >
                 <Ionicons name="create-outline" size={16} color="rgba(255, 255, 255, 0.7)" />
@@ -561,97 +332,6 @@ export function ProfileScreen() {
           </TouchableOpacity>
         </Card>
       </ScrollView>
-      
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text variant="headingLarge">{t('profile.edit')}</Text>
-            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-              <Text variant="body" color="primary">{t('common.close')}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-            <View style={styles.avatarSection}>
-              <Avatar size={100} name={displayName} imageUrl={avatarUrl} />
-              <Button 
-                variant="ghost" 
-                style={styles.avatarButton}
-                onPress={handleAvatarPick}
-                disabled={uploadingAvatar}
-                loading={uploadingAvatar}
-              >
-                {uploadingAvatar ? t('common.uploading') : t('profile.editAvatar')}
-              </Button>
-            </View>
-            
-            <Input
-              label={t('profile.firstName')}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder={t('profile.firstNamePlaceholder')}
-            />
-            
-            <Input
-              label={t('profile.lastName')}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder={t('profile.lastNamePlaceholder')}
-            />
-            
-            <Input
-              label={t('profile.displayName')}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder={t('profile.displayNamePlaceholder')}
-            />
-            
-            <Autocomplete
-              label={t('profile.organization')}
-              value={organization}
-              onChangeText={handleOrganizationChange}
-              onSelect={handleOrganizationSelect}
-              placeholder={t('profile.organizationPlaceholder')}
-              data={organizations}
-              minCharsToSearch={2}
-            />
-            
-            <Input
-              label={t('profile.rank')}
-              value={rank}
-              onChangeText={setRank}
-              placeholder={t('profile.rankPlaceholder')}
-            />
-            
-            <Input
-              label={t('profile.location')}
-              value={location}
-              onChangeText={setLocation}
-              placeholder={t('profile.locationPlaceholder')}
-            />
-            
-            <Input
-              label={t('profile.bio')}
-              value={bio}
-              onChangeText={setBio}
-              placeholder={t('profile.bioPlaceholder')}
-              multiline
-              numberOfLines={4}
-            />
-            
-            <Button variant="primary" onPress={handleSave} style={styles.saveButton} disabled={loading}>
-              {loading ? t('common.saving') : t('common.save')}
-            </Button>
-            </ScrollView>
-          </TouchableWithoutFeedback>
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -664,15 +344,19 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     },
     scrollView: {
       flex: 1,
+      backgroundColor: 'transparent',
     },
     scrollContent: {
       paddingBottom: theme.spacing.huge,
+      backgroundColor: 'transparent',
     },
     headerBackground: {
-      paddingTop: 60, // Extra padding for status bar + spacing
+      paddingTop: 10060, // Extended padding (10000 + 60) to create infinite scroll effect
       paddingBottom: theme.spacing.xl,
       paddingHorizontal: theme.spacing.lg,
       marginBottom: theme.spacing.lg,
+      backgroundColor: 'transparent',
+      marginTop: -10000, // Large negative margin to extend gradient infinitely upward when scrolling
     },
     profileCard: {
       alignItems: 'center',
@@ -731,7 +415,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     },
     emptyText: {
       marginTop: theme.spacing.md,
+      marginBottom: theme.spacing.xl,
       textAlign: 'center',
+    },
+    loginButton: {
+      marginTop: theme.spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
     },
     infoCard: {
       marginHorizontal: theme.spacing.lg,
@@ -811,34 +504,6 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     divider: {
       height: 1,
       backgroundColor: theme.colors.border,
-    },
-    modalContainer: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.lg,
-      backgroundColor: theme.colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.divider,
-    },
-    modalContent: {
-      flex: 1,
-      padding: theme.spacing.lg,
-    },
-    avatarSection: {
-      alignItems: 'center',
-      marginBottom: theme.spacing.xl,
-    },
-    avatarButton: {
-      marginTop: theme.spacing.md,
-    },
-    saveButton: {
-      marginTop: theme.spacing.xl,
     },
   });
 }

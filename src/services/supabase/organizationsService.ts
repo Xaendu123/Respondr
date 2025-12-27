@@ -14,33 +14,42 @@ import { supabase } from '../../config/supabase';
  */
 export const searchOrganizations = async (query: string): Promise<string[]> => {
   try {
-    // Search for organizations that contain the query (case-insensitive)
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('organization')
-      .not('organization', 'is', null)
-      .neq('organization', '')
-      .ilike('organization', `%${query}%`)
-      .limit(10);
+    // Use the database function to search organizations
+    // This function respects privacy while allowing organization search
+    const { data, error } = await supabase.rpc('search_organizations', {
+      search_query: query.trim(),
+    });
 
     if (error) {
-      // If RLS blocks access, return empty array (safe fallback)
-      if (error.code === 'PGRST301' || error.message.includes('permission')) {
+      // Log the error for debugging
+      console.warn('Organization search error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      
+      // If function doesn't exist, fall back to empty array
+      if (error.code === '42883' || error.message?.includes('does not exist')) {
+        console.warn('search_organizations function not found, falling back to empty results');
         return [];
       }
-      throw error;
+      
+      // For other errors, return empty array
+      return [];
     }
 
-    // Extract distinct organization names and filter out empty/null
-    const organizations = new Set<string>();
-    data?.forEach((profile) => {
-      if (profile.organization && profile.organization.trim()) {
-        organizations.add(profile.organization.trim());
+    // Extract organization names and filter out empty/null
+    const organizations: string[] = [];
+    data?.forEach((row: { organization: string }) => {
+      if (row.organization && row.organization.trim()) {
+        organizations.push(row.organization.trim());
       }
     });
 
-    return Array.from(organizations).sort();
-  } catch (error) {
+    return organizations.sort();
+  } catch (error: any) {
+    // Log unexpected errors
     console.warn('Could not search organizations:', error);
     return []; // Safe fallback - user can still type new organization
   }
@@ -51,30 +60,42 @@ export const searchOrganizations = async (query: string): Promise<string[]> => {
  */
 export const getAllOrganizations = async (): Promise<string[]> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('organization')
-      .not('organization', 'is', null)
-      .neq('organization', '')
-      .limit(50); // Limit to prevent huge lists
+    // Use the database function to get all organizations (empty query returns all)
+    const { data, error } = await supabase.rpc('search_organizations', {
+      search_query: '',
+    });
 
     if (error) {
-      if (error.code === 'PGRST301' || error.message.includes('permission')) {
+      // Log the error for debugging
+      console.warn('Get all organizations error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      
+      // If function doesn't exist, fall back to empty array
+      if (error.code === '42883' || error.message?.includes('does not exist')) {
+        console.warn('search_organizations function not found, falling back to empty results');
         return [];
       }
-      throw error;
+      
+      // For other errors, return empty array
+      return [];
     }
 
-    // Extract distinct organization names
-    const organizations = new Set<string>();
-    data?.forEach((profile) => {
-      if (profile.organization && profile.organization.trim()) {
-        organizations.add(profile.organization.trim());
+    // Extract organization names and filter out empty/null
+    const organizations: string[] = [];
+    data?.forEach((row: { organization: string }) => {
+      if (row.organization && row.organization.trim()) {
+        organizations.push(row.organization.trim());
       }
     });
 
-    return Array.from(organizations).sort();
-  } catch (error) {
+    // Limit to 50 for the dropdown
+    return organizations.slice(0, 50).sort();
+  } catch (error: any) {
+    // Log unexpected errors
     console.warn('Could not get organizations:', error);
     return [];
   }

@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Input, Text } from '../src/components/ui';
 import { supabase } from '../src/config/supabase';
 import { useTranslation } from '../src/hooks/useTranslation';
@@ -35,8 +35,6 @@ export default function ResetPasswordScreen() {
   // Extract and set session from URL if provided via deep link
   useEffect(() => {
     if (params.url) {
-      console.log('=== RESET PASSWORD SCREEN: URL RECEIVED ===', { url: params.url });
-      
       // Extract tokens from URL hash (fragment)
       try {
         const urlObj = new URL(params.url);
@@ -45,34 +43,22 @@ export default function ResetPasswordScreen() {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         
-        console.log('=== EXTRACTED FROM HASH ===', {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hashLength: hash.length,
-        });
-        
         if (accessToken && refreshToken) {
           // Set the session using tokens from URL hash
-          console.log('=== SETTING SESSION IN RESET SCREEN ===');
           supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           }).then(({ data, error }) => {
             if (error) {
-              console.error('=== FAILED TO SET SESSION ===', error);
               Alert.alert(
                 t('errors.auth'),
                 t('auth.invalidResetLink')
               );
-            } else if (data?.session) {
-              console.log('=== SESSION SET SUCCESSFULLY IN RESET SCREEN ===');
             }
           });
-        } else {
-          console.warn('=== NO TOKENS IN URL HASH ===');
         }
       } catch (error) {
-        console.error('=== ERROR PARSING RESET URL ===', error);
+        // Error parsing URL - silently handle
       }
     }
   }, [params.url, t]);
@@ -175,6 +161,10 @@ export default function ResetPasswordScreen() {
       }
       
       hapticSuccess();
+      
+      // Clear loading state before showing alert and navigating
+      setLoading(false);
+      
       Alert.alert(
         t('auth.passwordResetSuccess'),
         t('auth.passwordResetSuccessMessage'),
@@ -210,6 +200,14 @@ export default function ResetPasswordScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.heroSection}
       >
+        {/* Emergency Icons Background */}
+        <View style={styles.iconsBackground}>
+          <Ionicons name="flash" size={80} color="rgba(255, 255, 255, 0.08)" style={styles.icon1} />
+          <Ionicons name="medical" size={70} color="rgba(255, 255, 255, 0.08)" style={styles.icon2} />
+          <Ionicons name="flame" size={90} color="rgba(255, 255, 255, 0.08)" style={styles.icon3} />
+        </View>
+        
+        {/* Main Logo and Title */}
         <View style={styles.heroContent}>
           <View style={styles.logoGroup}>
             <View style={styles.logoIconsRow}>
@@ -231,11 +229,17 @@ export default function ResetPasswordScreen() {
       
       {/* Form Section */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         style={styles.formSection}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.formContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.formContent}>
             <Text variant="headingMedium" style={styles.welcomeText}>
               {t('auth.resetPassword')}
             </Text>
@@ -316,7 +320,8 @@ export default function ResetPasswordScreen() {
               </LinearGradient>
             </View>
           </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -329,12 +334,37 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       backgroundColor: theme.colors.background,
     },
     heroSection: {
-      height: '35%',
+      height: '45%',
       justifyContent: 'center',
       alignItems: 'center',
       position: 'relative',
       overflow: 'visible',
       paddingBottom: 40,
+      paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    },
+    iconsBackground: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    icon1: {
+      position: 'absolute',
+      top: 20,
+      right: -10,
+      transform: [{ rotate: '15deg' }],
+    },
+    icon2: {
+      position: 'absolute',
+      bottom: 20,
+      left: -10,
+      transform: [{ rotate: '-20deg' }],
+    },
+    icon3: {
+      position: 'absolute',
+      top: '45%',
+      right: -20,
+      transform: [{ rotate: '25deg' }],
     },
     heroContent: {
       alignItems: 'center',
@@ -400,10 +430,14 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       shadowRadius: 12,
       elevation: 8,
     },
+    scrollContent: {
+      flexGrow: 1,
+    },
     formContent: {
       flex: 1,
       padding: theme.spacing.xl,
       paddingTop: theme.spacing.xl,
+      minHeight: '100%',
     },
     welcomeText: {
       marginBottom: theme.spacing.lg,

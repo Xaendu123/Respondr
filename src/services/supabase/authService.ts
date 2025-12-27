@@ -24,7 +24,6 @@ export interface SignInData {
  * Supabase will return an error if the email already exists
  */
 export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | null; email: string; needsConfirmation: boolean }> => {
-  console.log('=== SIGNUP START ===', { email: data.email });
   
   // 1. Create auth user
   // Supabase will return an error if the email already exists
@@ -35,20 +34,8 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
       data: {
         display_name: data.displayName,
       },
+      emailRedirectTo: 'respondr://auth/confirm',
     },
-  });
-
-  console.log('=== SIGNUP RESPONSE ===', {
-    hasError: !!authError,
-    hasUser: !!authData?.user,
-    hasIdentities: !!authData?.user?.identities,
-    identitiesLength: authData?.user?.identities?.length ?? 0,
-    errorMessage: authError?.message,
-    errorStatus: authError?.status,
-    errorCode: authError?.code,
-    userId: authData?.user?.id,
-    userCreatedAt: authData?.user?.created_at,
-    emailConfirmed: authData?.user?.email_confirmed_at,
   });
 
   if (authError) {
@@ -78,21 +65,15 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
       errorMessage.includes('duplicate') ||
       errorMessage.includes('email already')
     ) {
-      console.log('=== DETECTED EXISTING USER ERROR FROM SUPABASE ===');
       throw new Error('User already registered');
     }
     
     // Check error code (Supabase might use specific status codes)
     // 422 = Unprocessable Entity (often used for validation errors like duplicate email)
     if (errorCode === 422 || errorCode === '422') {
-      console.log('=== DETECTED EXISTING USER ERROR BY STATUS CODE 422 ===');
       throw new Error('User already registered');
     }
     
-    console.log('=== ERROR NOT RECOGNIZED AS EXISTING USER ===', {
-      errorMessage,
-      errorCode,
-    });
     throw authError;
   }
   
@@ -100,12 +81,10 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
   // Supabase returns a fake/obfuscated user object with empty identities array
   // See: https://supabase.com/docs/reference/javascript/auth-signup
   if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
-    console.log('=== DETECTED EXISTING USER: Empty identities array (fake user) ===');
     throw new Error('User already registered');
   }
   
   if (!authData.user) {
-    console.log('=== NO USER RETURNED ===');
     throw new Error('User creation failed');
   }
 
@@ -114,7 +93,6 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
   
   if (!sessionData?.session) {
     // No session - email confirmation is required
-    console.log('=== NO SESSION - RETURNING NEEDS CONFIRMATION ===');
     // The trigger should have created the profile, but we can't verify it due to RLS
     // (RLS blocks reads when user doesn't have a session)
     // This is fine - the profile exists, we just can't read it until email is confirmed
@@ -158,7 +136,6 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
     profile = checkProfile;
   }
   
-  console.log('=== SIGNUP - SESSION ACTIVE (USER CREATED/LOGGED IN) ===', { userId: authData.user.id });
   // User is signed in (email confirmation not required or auto-confirmed)
   return {
     user: mapProfileToUserProfile(profile),
@@ -291,19 +268,25 @@ export const updateProfile = async (updates: Partial<UserProfile>): Promise<User
   
   if (!user) throw new Error('No authenticated user');
 
+  // Build update object, only including defined fields
+  const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (updates.displayName !== undefined) updateData.display_name = updates.displayName;
+    if (updates.firstName !== undefined) updateData.first_name = updates.firstName;
+    if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    if (updates.bio !== undefined) updateData.bio = updates.bio;
+    if (updates.organization !== undefined) updateData.organization = updates.organization;
+    if (updates.rank !== undefined) updateData.rank = updates.rank;
+    if (updates.location !== undefined) updateData.location = updates.location;
+    if (updates.unitId !== undefined) updateData.unit_id = updates.unitId;
+    // Handle avatar: include it if it's null (to delete) or a string (to update)
+    if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
+
   const { data: profile, error } = await supabase
     .from('profiles')
-    .update({
-      display_name: updates.displayName,
-      first_name: updates.firstName,
-      last_name: updates.lastName,
-      bio: updates.bio,
-      organization: updates.organization,
-      rank: updates.rank,
-      location: updates.location,
-      avatar: updates.avatar,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', user.id)
     .select()
     .single();
@@ -495,9 +478,7 @@ export async function requestAccountDeletion(reason?: string): Promise<void> {
  */
 export async function updatePrivacySettings(settings: {
   profileVisibility?: 'public' | 'unit' | 'private';
-  activityVisibility?: 'public' | 'unit' | 'private';
-  showStatistics?: boolean;
-  showLocation?: boolean;
+  marketingConsent?: boolean;
 }): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -505,20 +486,34 @@ export async function updatePrivacySettings(settings: {
     throw new Error('User not authenticated.');
   }
 
-  const { error } = await supabase
+  const updateData: { [key: string]: any } = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (settings.profileVisibility !== undefined) {
+    updateData.profile_visibility = settings.profileVisibility;
+  }
+
+  if (settings.marketingConsent !== undefined) {
+    // Explicitly set marketing_consent, even if false
+    updateData.marketing_consent = settings.marketingConsent;
+  }
+
+  console.log('Updating privacy settings:', updateData);
+
+  const { data, error } = await supabase
     .from('profiles')
-    .update({
-      profile_visibility: settings.profileVisibility,
-      activity_visibility: settings.activityVisibility,
-      show_statistics: settings.showStatistics,
-      show_location: settings.showLocation,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
+    .update(updateData)
+    .eq('id', user.id)
+    .select('profile_visibility, marketing_consent')
+    .single();
 
   if (error) {
+    console.error('Error updating privacy settings:', error);
     throw new Error(error.message);
   }
+
+  console.log('Privacy settings updated successfully:', data);
 }
 
 /**
@@ -527,7 +522,7 @@ export async function updatePrivacySettings(settings: {
  */
 export const resetPassword = async (email: string): Promise<void> => {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: 'respondr://reset-password',
+    redirectTo: 'respondr://auth/confirm',
   });
 
   if (error) {
@@ -540,21 +535,11 @@ export const resetPassword = async (email: string): Promise<void> => {
  * @param email - User's email address
  */
 export const resendConfirmationEmail = async (email: string): Promise<void> => {
-  console.log('=== RESEND CONFIRMATION EMAIL ===', { email: email.trim().toLowerCase() });
-  
   // Don't specify emailRedirectTo - let Supabase use the default configured in dashboard
   // This ensures it matches what was used during signup
   const { data, error } = await supabase.auth.resend({
     type: 'signup',
     email: email.trim().toLowerCase(),
-  });
-
-  console.log('=== RESEND RESPONSE ===', {
-    hasError: !!error,
-    errorMessage: error?.message,
-    errorCode: error?.code,
-    errorStatus: error?.status,
-    data: data,
   });
 
   if (error) {
@@ -566,7 +551,5 @@ export const resendConfirmationEmail = async (email: string): Promise<void> => {
     });
     throw new Error(error.message || 'Failed to resend confirmation email');
   }
-  
-  console.log('=== RESEND SUCCESS ===');
 }
 

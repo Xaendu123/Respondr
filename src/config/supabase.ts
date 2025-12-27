@@ -4,6 +4,10 @@
  * Configures and exports the Supabase client for use throughout the app.
  * Uses environment variables from app.config.js (via Constants) or process.env as fallback.
  * 
+ * Region: EU Central 2 (eu-central-2)
+ * The region is determined by your Supabase project settings. Ensure your project
+ * URL points to a project hosted in EU Central 2.
+ * 
  * Note: This client is untyped. To add type safety, generate types from your
  * Supabase instance using: `npx supabase gen types typescript --local > src/types/supabase.ts`
  */

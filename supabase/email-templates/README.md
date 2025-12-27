@@ -6,6 +6,8 @@ This directory contains custom email templates for Supabase authentication email
 
 - **password-reset.html** - English password reset email template
 - **password-reset-de.html** - German password reset email template
+- **password-changed.html** - English password changed notification email template
+- **password-changed-de.html** - German password changed notification email template
 
 ## How to Apply These Templates
 
@@ -70,17 +72,41 @@ This password reset template is designed to match your sign-up email template. I
 3. Use similar button styles and layout
 4. Maintain the same footer structure
 
+## Password Changed Notification
+
+**Important:** The "Password Changed" email template is not a default Supabase template. Supabase doesn't automatically send password changed notifications. To use these templates, you'll need to implement one of these approaches:
+
+### Option 1: Supabase Auth Hooks (Recommended)
+
+Use Supabase's Send Email Hook to detect password changes and send the notification:
+
+1. Go to **Authentication** → **Hooks** in Supabase Dashboard
+2. Create a new Send Email Hook
+3. Configure it to detect password change events
+4. Use the template HTML as the email body
+5. Send via your email service (Resend, SendGrid, etc.)
+
+See: [Supabase Auth Hooks Documentation](https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook)
+
+### Option 2: Database Trigger
+
+Create a database trigger that fires on password change and sends the email via a custom function.
+
+### Option 3: App Code
+
+After a successful password change in your app code, send the notification email using your email service and the template HTML.
+
 ## Language Support
 
 Currently available:
-- ✅ English (`password-reset.html`)
-- ✅ German (`password-reset-de.html`)
+- ✅ English (`password-reset.html`, `password-changed.html`)
+- ✅ German (`password-reset-de.html`, `password-changed-de.html`)
 
 To add more languages:
 1. Copy one of the existing templates
 2. Translate the text content
-3. Save as `password-reset-{lang}.html`
-4. Apply in Supabase dashboard
+3. Save as `{template-name}-{lang}.html`
+4. Apply in Supabase dashboard or use in your email sending code
 
 ## Notes
 

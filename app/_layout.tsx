@@ -33,19 +33,11 @@ function RootLayoutNav() {
       if (url.includes('auth/confirm') || url.includes('/auth/confirm')) {
         handled = true;
         try {
-          console.log('=== DIRECT AUTH CONFIRMATION LINK ===', { url: url.substring(0, 200) });
-          
           const urlObj = new URL(url);
           const tokenHash = urlObj.searchParams.get('token_hash') || urlObj.searchParams.get('token');
           const type = urlObj.searchParams.get('type') || 'signup';
           
-          console.log('=== EXTRACTED DIRECT CONFIRMATION TOKENS ===', {
-            hasTokenHash: !!tokenHash,
-            type,
-          });
-          
           if (!tokenHash) {
-            console.error('=== NO TOKEN HASH IN DIRECT CONFIRMATION LINK ===');
             Alert.alert(
               t('errors.auth'),
               t('auth.confirmationEmailInvalid')
@@ -55,21 +47,18 @@ function RootLayoutNav() {
           }
           
           // Verify the token hash to get a session
-          console.log('=== VERIFYING DIRECT CONFIRMATION TOKEN ===');
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: decodeURIComponent(tokenHash),
             type: type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email',
           });
           
           if (error) {
-            console.error('=== DIRECT CONFIRMATION VERIFY ERROR ===', error);
             Alert.alert(
               t('errors.auth'),
               error.message || t('auth.confirmationEmailInvalid')
             );
             router.replace('/login');
           } else if (data?.session) {
-            console.log('=== DIRECT CONFIRMATION SUCCESS ===');
             await refreshUser();
             
             if (type === 'recovery') {
@@ -80,7 +69,7 @@ function RootLayoutNav() {
               });
             } else {
               // Email confirmation - user is now logged in, navigate to home
-              router.replace('/(tabs)/logbook');
+              router.replace('/(tabs)/log');
             }
           } else {
             console.error('=== NO SESSION AFTER DIRECT CONFIRMATION ===');
@@ -123,7 +112,7 @@ function RootLayoutNav() {
               } else if (data?.session) {
                 // Email confirmed - user is now logged in
                 await refreshUser();
-                router.replace('/(tabs)/logbook');
+                router.replace('/(tabs)/log');
               }
             } else {
               // No token hash - wait for auth state to update
@@ -131,7 +120,7 @@ function RootLayoutNav() {
                 await refreshUser();
                 const { data: sessionData } = await supabase.auth.getSession();
                 if (sessionData?.session) {
-                  router.replace('/(tabs)/logbook');
+                  router.replace('/(tabs)/log');
                 } else {
                   router.replace('/login');
                 }
@@ -141,7 +130,7 @@ function RootLayoutNav() {
             // OAuth callback
             await handleOAuthCallback(url);
             await refreshUser();
-            router.replace('/(tabs)/logbook');
+            router.replace('/(tabs)/log');
           }
         } catch (error) {
           console.error('Auth callback error:', error);
@@ -152,8 +141,6 @@ function RootLayoutNav() {
       else if (url.includes('reset-password') || url.includes('type=recovery')) {
         handled = true;
         try {
-          console.log('=== PASSWORD RESET DEEP LINK ===', { url });
-          
           // Supabase redirects to your app with tokens in the URL hash (fragment)
           // Format: respondr://reset-password#access_token=...&refresh_token=...&type=recovery
           const urlObj = new URL(url);
@@ -165,16 +152,8 @@ function RootLayoutNav() {
           const refreshToken = hashParams.get('refresh_token');
           const type = hashParams.get('type') || urlObj.searchParams.get('type');
           
-          console.log('=== EXTRACTED TOKENS ===', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            type,
-            hashLength: hash.length,
-          });
-          
           if (accessToken && refreshToken) {
             // Method 1: Set session using tokens from URL hash (preferred)
-            console.log('=== SETTING SESSION FROM TOKENS (HASH) ===');
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: decodeURIComponent(accessToken),
               refresh_token: decodeURIComponent(refreshToken),
@@ -188,7 +167,6 @@ function RootLayoutNav() {
               );
               router.replace('/login');
             } else if (sessionData?.session) {
-              console.log('=== SESSION SET SUCCESSFULLY (PASSWORD RESET) ===');
               // Session set successfully - navigate to reset password screen
               await refreshUser();
               router.replace({
@@ -205,16 +183,8 @@ function RootLayoutNav() {
             const tokenHash = urlObj.searchParams.get('token_hash');
             const token = urlObj.searchParams.get('token');
             
-            console.log('=== CHECKING FOR TOKEN HASH OR TOKEN ===', {
-              hasTokenHash: !!tokenHash,
-              hasToken: !!token,
-              type,
-              fullUrl: url.substring(0, 200),
-            });
-            
             // If we have a token_hash, use verifyOtp to exchange it for a session
             if (tokenHash && (type === 'recovery' || url.includes('type=recovery'))) {
-              console.log('=== VERIFYING TOKEN HASH FOR RECOVERY ===');
               try {
                 const { data, error } = await supabase.auth.verifyOtp({
                   token_hash: tokenHash,
@@ -226,7 +196,6 @@ function RootLayoutNav() {
                   Alert.alert('Error', 'Invalid or expired reset link. Please request a new password reset.');
                   router.replace('/login');
                 } else if (data?.session) {
-                  console.log('=== RECOVERY SESSION CREATED VIA VERIFY OTP ===');
                   await refreshUser();
                   router.replace({
                     pathname: '/reset-password',
@@ -246,10 +215,6 @@ function RootLayoutNav() {
               // The token in the URL is the raw token, but verifyOtp needs token_hash
               // However, if this is the verification URL from email, we need to check if
               // the redirect actually happened or if we're still on the verification URL
-              console.log('=== FOUND TOKEN (NOT HASH) FOR RECOVERY ===', { 
-                token: token.substring(0, 20) + '...',
-                urlIsVerification: url.includes('supabase.co/auth/v1/verify'),
-              });
               
               // If this is still the Supabase verification URL, we can't directly use it
               // The user needs to click it in browser first, then browser redirects to app
@@ -260,10 +225,9 @@ function RootLayoutNav() {
               );
               
               setTimeout(async () => {
-                const { data: sessionData } = await supabase.auth.getSession();
-                if (sessionData?.session) {
-                  console.log('=== SESSION FOUND AFTER WAIT ===');
-                  await refreshUser();
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    if (sessionData?.session) {
+                      await refreshUser();
                   router.replace({
                     pathname: '/reset-password',
                     params: { url },
@@ -287,10 +251,9 @@ function RootLayoutNav() {
               });
               // Try one more time - check if Supabase set session automatically
               setTimeout(async () => {
-                const { data: sessionData } = await supabase.auth.getSession();
-                if (sessionData?.session) {
-                  console.log('=== SESSION FOUND ON RETRY ===');
-                  await refreshUser();
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    if (sessionData?.session) {
+                      await refreshUser();
                   router.replace({
                     pathname: '/reset-password',
                     params: { url },
@@ -334,36 +297,31 @@ function RootLayoutNav() {
             } else if (sessionData?.session) {
               // Email confirmed and user logged in
               await refreshUser();
-              router.replace('/(tabs)/logbook');
+              router.replace('/(tabs)/log');
             } else {
               router.replace('/login');
             }
           } else if (tokenHash) {
             // Token hash format - verify OTP
-            console.log('=== VERIFYING EMAIL CONFIRMATION TOKEN HASH ===');
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: decodeURIComponent(tokenHash),
               type: type as any,
             });
             
             if (error) {
-              console.error('=== EMAIL CONFIRMATION OTP ERROR ===', error);
               Alert.alert('Error', 'Invalid or expired confirmation link. Please request a new confirmation email.');
               router.replace('/login');
             } else if (data?.session) {
-              console.log('=== EMAIL CONFIRMED - SESSION CREATED ===');
               // Email confirmed - user is now logged in
               await refreshUser();
-              router.replace('/(tabs)/logbook');
+              router.replace('/(tabs)/log');
             } else {
-              console.error('=== NO SESSION AFTER EMAIL CONFIRMATION ===');
               router.replace('/login');
             }
           } else {
             // Check if there's a token (not hash) that needs verification
             const token = urlObj.searchParams.get('token');
             if (token && (type === 'signup' || type === 'email')) {
-              console.log('=== FOUND TOKEN FOR EMAIL CONFIRMATION (TRYING VERIFY OTP) ===');
               // Try to verify with token directly (though typically we need token_hash)
               // Sometimes the verification happens automatically when URL is opened
               setTimeout(async () => {
@@ -371,15 +329,12 @@ function RootLayoutNav() {
                   await refreshUser();
                   const { data: sessionData } = await supabase.auth.getSession();
                   if (sessionData?.session) {
-                    console.log('=== EMAIL CONFIRMATION SESSION FOUND ===');
-                    router.replace('/(tabs)/logbook');
+                    router.replace('/(tabs)/log');
                   } else {
-                    console.error('=== NO SESSION AFTER EMAIL CONFIRMATION ===');
                     Alert.alert('Error', 'Could not verify email. Please request a new confirmation email.');
                     router.replace('/login');
                   }
                 } catch (error) {
-                  console.error('=== EMAIL CONFIRMATION ERROR ===', error);
                   router.replace('/login');
                 }
               }, 1500);
@@ -391,13 +346,12 @@ function RootLayoutNav() {
                   await refreshUser();
                   const { data: sessionData } = await supabase.auth.getSession();
                   if (sessionData?.session) {
-                    router.replace('/(tabs)/logbook');
+                    router.replace('/(tabs)/log');
                   } else {
                     Alert.alert('Error', 'Could not verify email. Please request a new confirmation email.');
                     router.replace('/login');
                   }
                 } catch (error) {
-                  console.error('Error after email confirmation:', error);
                   router.replace('/login');
                 }
               }, 1500);
@@ -409,6 +363,19 @@ function RootLayoutNav() {
         }
       }
       
+      // Handle simple login deep link (respondr://login)
+      if (!handled) {
+        try {
+          const urlObj = new URL(url);
+          if (urlObj.pathname === '/login' || urlObj.pathname === 'login') {
+            handled = true;
+            router.replace('/login');
+          }
+        } catch (e) {
+          // URL parsing failed, continue to catch-all handler
+        }
+      }
+      
       // If deep link was not handled (invalid/unknown), route based on auth state
       if (!handled) {
         console.warn('Invalid or unknown deep link:', url);
@@ -416,7 +383,7 @@ function RootLayoutNav() {
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData?.session) {
             // User is authenticated - route to home
-            router.replace('/(tabs)/logbook');
+            router.replace('/(tabs)/log');
           } else {
             // No session - route to login
             router.replace('/login');
@@ -453,7 +420,7 @@ function RootLayoutNav() {
       router.replace('/login');
     } else if (isAuthenticated && inAuthScreens) {
       // Redirect to main app if authenticated and on login/register screens only
-      router.replace('/(tabs)/logbook');
+      router.replace('/(tabs)/log');
     }
     // Don't redirect from confirm-email or reset-password screens - let user stay there
     // Don't redirect from register screen when not authenticated (user might be registering)
@@ -471,6 +438,7 @@ function RootLayoutNav() {
       <Stack.Screen name="confirm-email" options={{ headerShown: false }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
+      <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
       <Stack.Screen name="badges" />
       <Stack.Screen name="my-activities" options={{ headerShown: false }} />
     </Stack>

@@ -7,7 +7,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, Keyboard, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { hapticSelect } from '../../utils/haptics';
 import { Input } from './Input';
@@ -18,6 +18,7 @@ export interface AutocompleteProps {
   value: string;
   onChangeText: (text: string) => void;
   onSelect?: (value: string) => void;
+  onFocus?: () => void;
   placeholder?: string;
   data: string[]; // List of suggestions
   maxSuggestions?: number;
@@ -30,6 +31,7 @@ export function Autocomplete({
   value,
   onChangeText,
   onSelect,
+  onFocus,
   placeholder,
   data,
   maxSuggestions = 5,
@@ -44,16 +46,24 @@ export function Autocomplete({
 
   // Filter data based on current value
   useEffect(() => {
-    if (!isFocused || value.length < minCharsToSearch) {
+    if (!isFocused) {
       setFilteredData([]);
       setShowSuggestions(false);
       return;
     }
 
+    // If value is empty or less than minCharsToSearch, show all data (up to maxSuggestions)
+    if (value.length < minCharsToSearch) {
+      const allData = data.slice(0, maxSuggestions);
+      setFilteredData(allData);
+      setShowSuggestions(allData.length > 0);
+      return;
+    }
+
+    // Filter based on value
     const lowerValue = value.toLowerCase();
     const filtered = data
       .filter((item) => item.toLowerCase().includes(lowerValue))
-      .filter((item) => item.toLowerCase() !== lowerValue) // Don't show exact match
       .slice(0, maxSuggestions);
 
     setFilteredData(filtered);
@@ -62,12 +72,21 @@ export function Autocomplete({
 
   const handleFocus = () => {
     setIsFocused(true);
-    // Show suggestions if we have a value
-    if (value.length >= minCharsToSearch) {
+    // Call parent onFocus handler if provided
+    if (onFocus) {
+      onFocus();
+    }
+    // Show suggestions based on current value
+    if (value.length < minCharsToSearch) {
+      // Show all suggestions when focused and value is short
+      const allData = data.slice(0, maxSuggestions);
+      setFilteredData(allData);
+      setShowSuggestions(allData.length > 0);
+    } else {
+      // Filter based on value
       const lowerValue = value.toLowerCase();
       const filtered = data
         .filter((item) => item.toLowerCase().includes(lowerValue))
-        .filter((item) => item.toLowerCase() !== lowerValue)
         .slice(0, maxSuggestions);
       setFilteredData(filtered);
       setShowSuggestions(filtered.length > 0);
@@ -123,11 +142,10 @@ export function Autocomplete({
       {showSuggestions && (
         <View style={styles.suggestionsContainer}>
           {filteredData.length > 0 && (
-            <FlatList
-              data={filteredData}
-              keyExtractor={(item, index) => `${item}-${index}`}
-              renderItem={({ item }) => (
+            <View>
+              {filteredData.map((item, index) => (
                 <TouchableOpacity
+                  key={`${item}-${index}`}
                   style={styles.suggestionItem}
                   onPress={() => handleSelect(item)}
                 >
@@ -141,10 +159,8 @@ export function Autocomplete({
                     {item}
                   </Text>
                 </TouchableOpacity>
-              )}
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled"
-            />
+              ))}
+            </View>
           )}
         </View>
       )}

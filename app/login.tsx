@@ -142,6 +142,19 @@ export default function LoginScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.heroSection}
       >
+        {/* Back Button */}
+        {router.canGoBack() && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => {
+              hapticLight();
+              router.back();
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
+        
         {/* Emergency Icons Background */}
         <View style={styles.iconsBackground}>
           <Ionicons name="flash" size={80} color="rgba(255, 255, 255, 0.08)" style={styles.icon1} />
@@ -289,6 +302,21 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       position: 'relative',
       overflow: 'visible',
       paddingBottom: 40,
+      paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    },
+    backButton: {
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? 50 : 20,
+      left: theme.spacing.lg,
+      zIndex: 10,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     iconsBackground: {
       ...StyleSheet.absoluteFillObject,

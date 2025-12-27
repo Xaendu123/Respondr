@@ -4,8 +4,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://mryretaoanuuwruhjdvn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yeXJldGFvYW51dXdydWhqZHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NTM4MjIsImV4cCI6MjA4MjEyOTgyMn0.rt0WwlaG0X-2JETZYVRW2H1J6NQk1pg_P5Jfze3ZnBI"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nbdmoapoiqxyjrrhzqvg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iZG1vYXBvaXF4eWpycmh6cXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3ODQwNzUsImV4cCI6MjA4MjM2MDA3NX0.2b08oLRb_eVeBST0bt11-mBf1EFSUNoMGxhZivZzfLU"
       },
       "ios": {
         "buildConfiguration": "Debug",
@@ -19,8 +19,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://mryretaoanuuwruhjdvn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yeXJldGFvYW51dXdydWhqZHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NTM4MjIsImV4cCI6MjA4MjEyOTgyMn0.rt0WwlaG0X-2JETZYVRW2H1J6NQk1pg_P5Jfze3ZnBI"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nbdmoapoiqxyjrrhzqvg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iZG1vYXBvaXF4eWpycmh6cXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3ODQwNzUsImV4cCI6MjA4MjM2MDA3NX0.2b08oLRb_eVeBST0bt11-mBf1EFSUNoMGxhZivZzfLU"
       },
       "ios": {
         "simulator": false,
@@ -35,8 +35,8 @@
       "autoIncrement": true,
       "env": {
         "NODE_ENV": "production",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://mryretaoanuuwruhjdvn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yeXJldGFvYW51dXdydWhqZHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NTM4MjIsImV4cCI6MjA4MjEyOTgyMn0.rt0WwlaG0X-2JETZYVRW2H1J6NQk1pg_P5Jfze3ZnBI"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nbdmoapoiqxyjrrhzqvg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iZG1vYXBvaXF4eWpycmh6cXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3ODQwNzUsImV4cCI6MjA4MjM2MDA3NX0.2b08oLRb_eVeBST0bt11-mBf1EFSUNoMGxhZivZzfLU"
       },
       "ios": {
         "buildConfiguration": "Release",

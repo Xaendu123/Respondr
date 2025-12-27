@@ -8,6 +8,9 @@ This directory contains all project documentation organized by category.
 docs/
 ├── setup/           # Setup and configuration guides
 ├── features/        # Feature documentation
+├── supabase/        # Supabase-specific documentation
+├── testing/         # Testing guides
+├── troubleshooting/ # Troubleshooting guides
 ├── architecture/    # Architecture and design documentation
 └── README.md        # This file
 ```
@@ -35,6 +38,14 @@ Feature-specific documentation:
 - **`CONVENIENT_FEATURES.md`** - List of convenient features to implement
 - **`FEATURE_ROADMAP.md`** - Feature implementation roadmap
 - **`PRIVACY_AND_GDPR.md`** - Privacy and GDPR compliance guide
+- **`DEEP_LINKING_AND_REDIRECTS.md`** - Deep linking implementation guide
+
+## Supabase Documentation
+
+Supabase-specific guides:
+
+- **`DEEP_LINK_IMPLEMENTATION.md`** - Comprehensive deep link implementation for auth flows
+- **`SUPABASE_FEATURES_RECOMMENDATIONS.md`** - Recommended Supabase features to use
 
 ## Architecture Documentation
 

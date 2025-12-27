@@ -45,7 +45,7 @@ export default function RegisterScreen() {
     }
     if (emailAlreadyRegistered) {
       setEmailAlreadyRegistered(false);
-    }
+        }
   };
 
   
@@ -80,34 +80,24 @@ export default function RegisterScreen() {
     }
     
     try {
-      console.log('=== REGISTER SCREEN: Starting signup ===', { email: email.trim() });
       const confirmationEmail = await register({ 
         email: email.trim(), 
         password, 
         displayName: displayName.trim(),
       });
-      console.log('=== REGISTER SCREEN: Signup successful ===', { confirmationEmail });
       hapticSuccess();
       
       // Only redirect to confirm email screen if signup was successful
       // (confirmationEmail will be null if user is already authenticated)
       if (confirmationEmail !== null) {
-        console.log('=== REGISTER SCREEN: Redirecting to confirm-email ===');
         router.replace({
           pathname: '/confirm-email',
           params: { email: confirmationEmail || email.trim() },
         });
-      } else {
-        console.log('=== REGISTER SCREEN: No redirect needed (user authenticated) ===');
       }
       // If confirmationEmail is null, user is already authenticated
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      console.log('=== REGISTER SCREEN: Error caught ===', {
-        message: error.message,
-        code: error.code,
-        fullError: error,
-      });
       // Check if error is due to existing email
       const errorMessage = error.message || '';
       hapticError();
@@ -118,11 +108,9 @@ export default function RegisterScreen() {
         error.code === 'signup_disabled' ||
         error.code === 'email_address_not_authorized'
       ) {
-        console.log('=== REGISTER SCREEN: Setting emailAlreadyRegistered to true ===');
         setEmailAlreadyRegistered(true);
         setEmailError('');
       } else {
-        console.log('=== REGISTER SCREEN: Showing generic error ===');
         setEmailError(errorMessage || t('auth.registrationFailed'));
         Alert.alert(t('errors.auth'), errorMessage || t('auth.registrationFailed'));
       }
@@ -187,12 +175,12 @@ export default function RegisterScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.formContent}>
-            
-            {/* Registration Form */}
-            <View style={styles.formCard}>
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.formContent}>
+          
+          {/* Registration Form */}
+          <View style={styles.formCard}>
             <Input
               label={t('auth.displayName')}
               value={displayName}
@@ -303,7 +291,7 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
           </View>
-          </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

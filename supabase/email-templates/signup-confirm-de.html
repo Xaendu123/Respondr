@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Passwort zurücksetzen - Respondr</title>
+  <title>E-Mail bestätigen - Respondr</title>
   <style>
     * {
       margin: 0;
@@ -84,7 +84,7 @@
       text-align: center;
       margin: 32px 0;
     }
-    .reset-button {
+    .confirm-button {
       display: inline-block;
       background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%);
       color: #ffffff;
@@ -97,7 +97,7 @@
       box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .reset-button:hover {
+    .confirm-button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(8, 145, 178, 0.4);
     }
@@ -172,29 +172,29 @@
 
     <!-- Main Content -->
     <div class="content">
-      <div class="greeting">Passwort zurücksetzen</div>
+      <div class="greeting">E-Mail bestätigen</div>
       
       <div class="message">
         Hallo,
         <br><br>
-        Wir haben eine Anfrage erhalten, das Passwort für dein Respondr-Konto zurückzusetzen. Wenn du diese Anfrage gestellt hast, klicke auf die Schaltfläche unten, um dein Passwort zurückzusetzen.
+        Willkommen bei Respondr! Vielen Dank für deine Anmeldung. Um deine Registrierung abzuschließen und dein Konto zu aktivieren, bestätige bitte deine E-Mail-Adresse, indem du auf die Schaltfläche unten klickst.
         <br><br>
-        Wenn du keine Passwort-Reset-Anfrage gestellt hast, kannst du diese E-Mail einfach ignorieren. Dein Passwort bleibt unverändert.
+        Sobald du deine E-Mail bestätigt hast, kannst du dich anmelden und Respondr nutzen, um deine Aktivitäten zu verfolgen und dich mit deiner Einheit zu verbinden.
       </div>
 
-      <!-- Reset Button -->
+      <!-- Confirm Button -->
       <div class="button-container">
-        <a href="respondr://auth/confirm?token_hash={{ .TokenHash }}&type=recovery" class="reset-button">
-          Passwort zurücksetzen
+        <a href="respondr://auth/confirm?token_hash={{ .TokenHash }}&type=signup" class="confirm-button">
+          E-Mail bestätigen
         </a>
       </div>
 
       <!-- Link Fallback -->
       <div class="link-fallback">
         <div class="link-fallback-text">
-          Wenn die Schaltfläche nicht funktioniert, kopiere diesen Link und füge ihn in deinen Browser ein. Dies öffnet die Respondr-App zum Zurücksetzen deines Passworts:
+          Wenn die Schaltfläche nicht funktioniert, kopiere diesen Link und füge ihn in deinen Browser ein. Dies öffnet die Respondr-App zur Bestätigung deiner E-Mail:
         </div>
-        <div class="link-fallback-url">respondr://auth/confirm?token_hash={{ .TokenHash }}&type=recovery</div>
+        <div class="link-fallback-url">respondr://auth/confirm?token_hash={{ .TokenHash }}&type=signup</div>
         <div style="margin-top: 12px; font-size: 13px; color: #6b7280;">
           <strong>Hinweis:</strong> Wenn du auf diesen Link klickst, öffnet sich die Respondr-App auf deinem Gerät. Wenn die App nicht öffnet, stelle sicher, dass die Respondr-App installiert ist.
         </div>
@@ -203,12 +203,12 @@
       <!-- Security Note -->
       <div class="security-note">
         <div class="security-note-text">
-          <strong>Sicherheitstipp:</strong> Dieser Passwort-Reset-Link läuft aus Sicherheitsgründen nach 1 Stunde ab. Wenn du dein Passwort nach Ablauf zurücksetzen musst, bitte fordere einen neuen Reset-Link an.
+          <strong>Sicherheitstipp:</strong> Dieser Bestätigungslink läuft aus Sicherheitsgründen nach 24 Stunden ab. Wenn du einen neuen Bestätigungslink benötigst, kannst du einen vom Anmeldebildschirm anfordern.
         </div>
       </div>
 
       <div class="expiry-note">
-        Dieser Link läuft in 1 Stunde ab.
+        Dieser Link läuft in 24 Stunden ab.
       </div>
     </div>
 

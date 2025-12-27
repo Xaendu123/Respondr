@@ -79,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (sessionError.message?.includes('Invalid Refresh Token') || 
             sessionError.message?.includes('Refresh Token Not Found')) {
           // Clear the invalid session
-          console.log('Clearing invalid session...');
           await supabaseAuth.signOut();
           setUser(null);
           return;
@@ -95,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Handle invalid refresh token during profile load
           if (profileError?.message?.includes('Invalid Refresh Token') || 
               profileError?.message?.includes('Refresh Token Not Found')) {
-            console.log('Invalid refresh token during profile load, signing out...');
             await supabaseAuth.signOut();
             setUser(null);
           } else {

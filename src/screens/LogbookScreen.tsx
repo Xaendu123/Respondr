@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
@@ -25,6 +25,7 @@ export function LogbookScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { activities, loading, refresh, deleteActivity } = useActivities('mine');
+  const insets = useSafeAreaInsets();
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
@@ -128,7 +129,7 @@ export function LogbookScreen() {
   }
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.gradientStart} translucent={true} />
       {/* Header with Gradient */}
       <LinearGradient
@@ -279,7 +280,7 @@ export function LogbookScreen() {
       
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.md + insets.bottom + 60 }]}
         refreshControl={
           <RefreshControl
             refreshing={loading}
