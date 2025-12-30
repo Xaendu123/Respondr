@@ -109,7 +109,7 @@ export function BadgesScreen() {
                   <Card
                     key={badge.id}
                     style={styles.badgeCard}
-                    elevated
+                    glass
                   >
                     <View
                       style={[
@@ -159,6 +159,7 @@ export function BadgesScreen() {
                   <Card
                     key={badge.id}
                     style={[styles.badgeCard, styles.badgeCardLocked]}
+                    glass
                   >
                     <View
                       style={[

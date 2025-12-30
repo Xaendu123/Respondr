@@ -54,8 +54,8 @@ CREATE TABLE profiles (
   role user_role NOT NULL DEFAULT 'member',
   
   -- Privacy settings
-  profile_visibility privacy_level NOT NULL DEFAULT 'unit',
-  activity_visibility privacy_level NOT NULL DEFAULT 'unit',
+  profile_visibility privacy_level NOT NULL DEFAULT 'public',
+  activity_visibility privacy_level NOT NULL DEFAULT 'public',
   show_statistics BOOLEAN NOT NULL DEFAULT true,
   show_location BOOLEAN NOT NULL DEFAULT false,
   
@@ -78,7 +78,7 @@ CREATE TABLE profiles (
   -- GDPR compliance
   data_processing_consent BOOLEAN NOT NULL DEFAULT true,
   data_processing_consent_date TIMESTAMPTZ,
-  marketing_consent BOOLEAN NOT NULL DEFAULT false,
+  marketing_consent BOOLEAN NOT NULL DEFAULT true,
   
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

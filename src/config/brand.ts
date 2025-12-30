@@ -16,6 +16,12 @@
 
 import { ImageSourcePropType } from 'react-native';
 
+// Import brand assets
+const wordmarkDark = require('../../assets/brand/logos/wordmark-dark.png');
+const wordmarkLight = require('../../assets/brand/logos/wordmark-light.png');
+const appIcon = require('../../assets/brand/icons/icon.png');
+const splashIcon = require('../../assets/brand/splash/splash-icon.png');
+
 export interface BrandConfig {
   appName: string;
   appTagline: string;
@@ -48,13 +54,12 @@ export interface BrandConfig {
 export const defaultBrandConfig: BrandConfig = {
   appName: 'Respondr',
   appTagline: 'Für die Helden im Einsatz',
-  // Note: In production, these should reference actual asset files
-  // For now, using null - components should handle null gracefully
-  logo: null,
-  logoLight: null,
-  logoDark: null,
-  appIcon: null,
-  splashImage: null,
+  // Brand logo assets
+  logo: wordmarkDark, // Default logo (dark version)
+  logoLight: wordmarkLight, // Light version for dark backgrounds
+  logoDark: wordmarkDark, // Dark version for light backgrounds
+  appIcon: appIcon, // App icon
+  splashImage: splashIcon, // Splash screen icon
   brandColors: {
     // Professional blue-teal scheme that works for all rescue organizations
     primary: '#0891B2', // Cyan 600 - professional, trustworthy
@@ -63,10 +68,10 @@ export const defaultBrandConfig: BrandConfig = {
     accent: '#22D3EE', // Cyan 400 - bright highlights
   },
   brandFonts: {
-    regular: 'System',
-    medium: 'System',
-    semibold: 'System',
-    bold: 'System',
+    regular: 'Poppins_400Regular',
+    medium: 'Poppins_500Medium',
+    semibold: 'Poppins_600SemiBold',
+    bold: 'Poppins_700Bold',
   },
   metadata: {
     supportEmail: 'info@respondr.ch',

@@ -34,7 +34,7 @@ export function FeedScreen() {
       
       {/* Coming Soon Content */}
       <View style={styles.content}>
-        <Card style={styles.comingSoonCard} glass elevated>
+        <Card style={styles.comingSoonCard} glass>
           <View style={styles.iconContainer}>
             <Ionicons name="sparkles-outline" size={80} color={theme.colors.primary} />
           </View>

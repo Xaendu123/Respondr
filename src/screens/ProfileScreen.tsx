@@ -6,9 +6,9 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Button, Card, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
@@ -16,19 +16,43 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { resetPassword } from '../services/supabase/authService';
+import { formatDurationDetailed } from '../utils/formatDuration';
 
 export function ProfileScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { activities } = useActivities('mine');
+  const { activities, refresh } = useActivities('mine');
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        refresh();
+      }
+    }, [refresh, user])
+  );
   
   // Calculate stats from activities
+  const totalDurationInMinutes = activities.reduce((sum, a) => sum + a.duration, 0);
+  
+  // Calculate duration breakdown
+  const totalMinutes = Math.floor(totalDurationInMinutes);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  
   const stats = {
     totalActivities: activities.length,
-    totalHours: Math.round(activities.reduce((sum, a) => sum + a.duration, 0) / 60),
+    totalDurationFormatted: formatDurationDetailed(totalDurationInMinutes, t),
+    durationBreakdown: {
+      days,
+      hours,
+      minutes,
+    },
     activitiesByType: {
       training: activities.filter(a => a.type === 'training').length,
       exercise: activities.filter(a => a.type === 'exercise').length,
@@ -47,6 +71,17 @@ export function ProfileScreen() {
   };
   
   const styles = createStyles(theme);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   
   const handlePasswordReset = async () => {
     if (!user?.email) {
@@ -125,6 +160,14 @@ export function ProfileScreen() {
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.huge + insets.bottom + 60 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         {/* Profile Header with Gradient */}
         <LinearGradient
@@ -178,7 +221,7 @@ export function ProfileScreen() {
         </LinearGradient>
         
         {/* Profile Information */}
-        <Card style={styles.infoCard} glass elevated>
+        <Card style={styles.infoCard} glass>
           <Text variant="headingMedium" style={styles.sectionTitle}>
             {t('profile.information')}
           </Text>
@@ -235,78 +278,120 @@ export function ProfileScreen() {
         </Card>
         
         {/* Stats Section */}
-        <Card style={styles.statsCard} glass elevated>
-          <Text variant="headingMedium" style={styles.sectionTitle}>
+        <View style={styles.statsSection}>
+          <Text variant="headingMedium" style={styles.statsSectionTitle}>
             {t('profile.statistics')}
           </Text>
           
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <View style={styles.statHeader}>
-                <Ionicons name="list-outline" size={24} color={theme.colors.primary} />
-                <Text variant="headingLarge" style={styles.statValue}>
+          {/* Main Stats Grid */}
+          <View style={styles.mainStatsGrid}>
+            <Card style={styles.mainStatCard} glass>
+              <View style={styles.mainStatContent}>
+                <View style={[styles.statIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+                  <Ionicons name="list" size={28} color={theme.colors.primary} />
+                </View>
+                <Text variant="headingLarge" style={styles.mainStatValue}>
                   {stats.totalActivities}
                 </Text>
-              </View>
-              <Text variant="caption" color="textSecondary">
-                {t('profile.totalActivities')}
-              </Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <View style={styles.statHeader}>
-                <Ionicons name="time-outline" size={24} color={theme.colors.success} />
-                <Text variant="headingLarge" style={styles.statValue}>
-                  {stats.totalHours}h
+                <Text variant="caption" color="textSecondary" style={styles.mainStatLabel}>
+                  {t('profile.totalActivities')}
                 </Text>
               </View>
-              <Text variant="caption" color="textSecondary">
-                {t('profile.totalDuration')}
-              </Text>
-            </View>
+            </Card>
+            
+            <Card style={styles.mainStatCard} glass>
+              <View style={styles.mainStatContent}>
+                <View style={[styles.statIconContainer, { backgroundColor: theme.colors.success + '15' }]}>
+                  <Ionicons name="time" size={28} color={theme.colors.success} />
+                </View>
+                <View style={styles.durationMainContainer}>
+                  {stats.durationBreakdown.days > 0 && (
+                    <View style={styles.durationMainItem}>
+                      <Text variant="headingLarge" style={styles.durationMainValue}>
+                        {stats.durationBreakdown.days}
+                      </Text>
+                      <Text variant="caption" color="textSecondary">
+                        {t('profile.days')}
+                      </Text>
+                    </View>
+                  )}
+                  {stats.durationBreakdown.hours > 0 && (
+                    <View style={styles.durationMainItem}>
+                      <Text variant="headingLarge" style={styles.durationMainValue}>
+                        {stats.durationBreakdown.hours}
+                      </Text>
+                      <Text variant="caption" color="textSecondary">
+                        {t('profile.hours')}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.durationMainItem}>
+                    <Text variant="headingLarge" style={styles.durationMainValue}>
+                      {stats.durationBreakdown.minutes}
+                    </Text>
+                    <Text variant="caption" color="textSecondary">
+                      {t('profile.minutes')}
+                    </Text>
+                  </View>
+                </View>
+                <Text variant="caption" color="textSecondary" style={styles.mainStatLabel}>
+                  {t('profile.totalDuration')}
+                </Text>
+              </View>
+            </Card>
           </View>
           
-          <View style={styles.divider} />
-          
-          <Text variant="label" color="textSecondary" style={styles.subsectionTitle}>
-            {t('profile.byType')}
-          </Text>
-          
-          <View style={styles.typeStats}>
-            <View style={styles.typeStatRow}>
-              <View style={styles.typeLabel}>
-                <Ionicons name="book-outline" size={18} color={theme.colors.info} />
-                <Text variant="body">{t('activity.typeTraining')}</Text>
+          {/* Activity Types Section */}
+          <Card style={styles.typeStatsCard} glass>
+            <Text variant="label" color="textSecondary" style={styles.typeStatsTitle}>
+              {t('profile.byType')}
+            </Text>
+            <View style={styles.typeStatsGrid}>
+              <View style={styles.typeStatCard}>
+                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.info + '15' }]}>
+                  <Ionicons name="book" size={20} color={theme.colors.info} />
+                </View>
+                <Text variant="headingMedium" style={{ color: theme.colors.info }}>
+                  {stats.activitiesByType.training}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                  {t('activity.typeTraining')}
+                </Text>
               </View>
-              <Text variant="headingSmall" style={{ color: theme.colors.info }}>
-                {stats.activitiesByType.training}
-              </Text>
-            </View>
-            
-            <View style={styles.typeStatRow}>
-              <View style={styles.typeLabel}>
-                <Ionicons name="fitness-outline" size={18} color={theme.colors.warning} />
-                <Text variant="body">{t('activity.typeExercise')}</Text>
+              
+              <View style={styles.typeStatCard}>
+                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
+                  <Ionicons name="fitness" size={20} color={theme.colors.warning} />
+                </View>
+                <Text variant="headingMedium" style={{ color: theme.colors.warning }}>
+                  {stats.activitiesByType.exercise}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                  {t('activity.typeExercise')}
+                </Text>
               </View>
-              <Text variant="headingSmall" style={{ color: theme.colors.warning }}>
-                {stats.activitiesByType.exercise}
-              </Text>
-            </View>
-            
-            <View style={styles.typeStatRow}>
-              <View style={styles.typeLabel}>
-                <Ionicons name="flash-outline" size={18} color={theme.colors.error} />
-                <Text variant="body">{t('activity.typeOperation')}</Text>
+              
+              <View style={styles.typeStatCard}>
+                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.error + '15' }]}>
+                  <Ionicons name="flash" size={20} color={theme.colors.error} />
+                </View>
+                <Text variant="headingMedium" style={{ color: theme.colors.error }}>
+                  {stats.activitiesByType.operation}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                  {t('activity.typeOperation')}
+                </Text>
               </View>
-              <Text variant="headingSmall" style={{ color: theme.colors.error }}>
-                {stats.activitiesByType.operation}
-              </Text>
             </View>
-          </View>
-        </Card>
+          </Card>
+        </View>
         
-        {/* Quick Actions */}
-        <Card style={styles.actionsCard} glass elevated>
+        {/* Settings & Actions Section */}
+        <View style={styles.settingsSection}>
+          <Text variant="headingMedium" style={styles.settingsSectionTitle}>
+            {t('settings.title')}
+          </Text>
+          <Card style={styles.actionsCard} glass>
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => router.push('/settings')}
@@ -331,6 +416,7 @@ export function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </Card>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -434,6 +520,10 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     sectionTitle: {
       marginBottom: theme.spacing.md,
     },
+    statsSectionTitle: {
+      marginBottom: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xs,
+    },
     infoRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -445,48 +535,94 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     infoContent: {
       flex: 1,
     },
-    statsCard: {
+    statsSection: {
+      marginHorizontal: theme.spacing.lg,
+      marginBottom: theme.spacing.xl,
+    },
+    settingsSection: {
       marginHorizontal: theme.spacing.lg,
       marginBottom: theme.spacing.lg,
+    },
+    settingsSectionTitle: {
+      marginBottom: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xs,
+    },
+    mainStatsGrid: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      marginBottom: theme.spacing.lg,
+    },
+    mainStatCard: {
+      flex: 1,
       padding: theme.spacing.lg,
     },
-    statsGrid: {
-      flexDirection: 'row',
-      gap: theme.spacing.lg,
-      marginBottom: theme.spacing.lg,
-    },
-    statItem: {
-      flex: 1,
-    },
-    statHeader: {
-      flexDirection: 'row',
+    mainStatContent: {
       alignItems: 'center',
       gap: theme.spacing.sm,
+    },
+    statIconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.borderRadius.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
       marginBottom: theme.spacing.xs,
     },
-    statValue: {
-      flex: 1,
+    mainStatValue: {
+      textAlign: 'center',
     },
-    subsectionTitle: {
-      marginTop: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
+    mainStatLabel: {
+      textAlign: 'center',
+      marginTop: theme.spacing.xs,
     },
-    typeStats: {
-      gap: theme.spacing.sm,
-    },
-    typeStatRow: {
+    durationMainContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      gap: theme.spacing.md,
       alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: theme.spacing.xs,
+    },
+    durationMainItem: {
+      alignItems: 'center',
+      gap: theme.spacing.xxs,
+    },
+    durationMainValue: {
+      color: theme.colors.success,
+      textAlign: 'center',
+    },
+    typeStatsCard: {
+      padding: theme.spacing.lg,
+    },
+    typeStatsTitle: {
+      marginBottom: theme.spacing.md,
+      fontSize: theme.typography.fontSize.sm,
+      fontWeight: theme.typography.fontWeight.semibold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    typeStatsGrid: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+    },
+    typeStatCard: {
+      flex: 1,
+      alignItems: 'center',
+      gap: theme.spacing.xs,
       paddingVertical: theme.spacing.sm,
     },
-    typeLabel: {
-      flexDirection: 'row',
+    typeStatIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.borderRadius.lg,
       alignItems: 'center',
-      gap: theme.spacing.sm,
+      justifyContent: 'center',
+      marginBottom: theme.spacing.xs,
+    },
+    typeStatLabel: {
+      textAlign: 'center',
+      fontSize: theme.typography.fontSize.xs,
     },
     actionsCard: {
-      marginHorizontal: theme.spacing.lg,
       padding: 0,
     },
     actionRow: {

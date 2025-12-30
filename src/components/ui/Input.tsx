@@ -36,6 +36,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(({ label, error, st
             paddingVertical: theme.spacing.sm,
             color: theme.colors.textPrimary,
             fontSize: theme.typography.fontSize.base,
+            fontFamily: theme.typography.fontFamily.regular,
           },
           style,
         ]}

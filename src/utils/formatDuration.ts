@@ -66,3 +66,34 @@ export function formatDurationWithTranslation(
   }
 }
 
+/**
+ * Formats duration in days, hours, and minutes format (e.g., "5d 2h 30m")
+ * @param durationInMinutes - Duration in minutes
+ * @param t - Translation function (unused, kept for API consistency)
+ * @returns Formatted duration string with days, hours, and minutes
+ */
+export function formatDurationDetailed(
+  durationInMinutes: number,
+  t?: (key: string) => string
+): string {
+  const totalMinutes = Math.floor(durationInMinutes);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  
+  const parts: string[] = [];
+  
+  // Always show days if > 0
+  if (days > 0) {
+    parts.push(`${days}d`);
+  }
+  // Always show hours if > 0 or if we have days
+  if (hours > 0 || days > 0) {
+    parts.push(`${hours}h`);
+  }
+  // Always show minutes
+  parts.push(`${minutes}m`);
+  
+  return parts.join(' ');
+}
+

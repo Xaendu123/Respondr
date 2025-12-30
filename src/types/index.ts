@@ -49,6 +49,8 @@ export interface Activity {
   participants?: string[]; // user IDs
   unitId?: string;
   visibility: ActivityVisibility;
+  category?: string; // Operation category (e.g., A1, B2, etc.)
+  falseAlarm?: boolean; // Indicates if this operation was a false alarm
   tags?: string[];
   images?: string[]; // image URLs
   reactions: Reaction[];

@@ -6,8 +6,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, Text } from '../components/ui';
@@ -29,8 +29,37 @@ export function LogbookScreen() {
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isFirstFocus = useRef(true);
   
   const styles = createStyles(theme);
+  
+  // Handle manual refresh (pull-to-refresh)
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refresh]);
+  
+  // Refresh activities when screen comes into focus (e.g., after saving from LogActivityScreen)
+  // Skip refresh on first focus to prevent pull-down animation on initial load
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        // Skip refresh on first focus - activities are already loaded on mount
+        if (isFirstFocus.current) {
+          isFirstFocus.current = false;
+          return;
+        }
+        // Refresh on subsequent focuses (returning from another screen)
+        // Don't show refresh animation when returning from another screen
+        refresh();
+      }
+    }, [refresh, user])
+  );
   
   const getActivityTypeColor = (type: string) => {
     switch (type) {
@@ -57,6 +86,42 @@ export function LogbookScreen() {
       case 'operation': return t('activity.typeOperation');
       default: return type;
     }
+  };
+  
+  const getCategoryLabel = (category: string | undefined): string => {
+    if (!category) return '';
+    
+    // Map category values to translation keys
+    const categoryTranslationMap: Record<string, string> = {
+      'A1 - Brand klein': 'activity.categoryA1',
+      'A2 - Brand mittel': 'activity.categoryA2',
+      'A3 - Brand gross': 'activity.categoryA3',
+      'B1 - Elementar klein': 'activity.categoryB1',
+      'B2 - Elementar mittel': 'activity.categoryB2',
+      'B3 - Elementar gross': 'activity.categoryB3',
+      'C1 - Hilfeleistung klein': 'activity.categoryC1',
+      'C2 - Hilfeleistung mittel': 'activity.categoryC2',
+      'C3 - Hilfeleistung gross': 'activity.categoryC3',
+      'D1 - Öl/Benzin/Gas klein': 'activity.categoryD1',
+      'D2 - Öl/Benzin/Gas mittel': 'activity.categoryD2',
+      'D3 - Öl/Benzin/Gas gross': 'activity.categoryD3',
+      'E1 - ABC klein': 'activity.categoryE1',
+      'E2 - ABC mittel': 'activity.categoryE2',
+      'E3 - ABC gross': 'activity.categoryE3',
+      'F1 - PbU klein': 'activity.categoryF1',
+      'F2 - PbU mittel': 'activity.categoryF2',
+      'F3 - PbU gross': 'activity.categoryF3',
+      'G1 - Tierrettung klein': 'activity.categoryG1',
+      'G2 - Tierrettung mittel': 'activity.categoryG2',
+    };
+    
+    const translationKey = categoryTranslationMap[category];
+    if (translationKey) {
+      return t(translationKey);
+    }
+    
+    // If no translation found, return the category as-is
+    return category;
   };
   
   const handleDeleteActivity = (activityId: string) => {
@@ -92,10 +157,15 @@ export function LogbookScreen() {
   const handleEditActivity = (activity: Activity) => {
     hapticLight();
     // Navigate to edit screen with activity data
-    Alert.alert(
-      t('common.comingSoon'),
-      t('logbook.editComingSoon')
-    );
+    // Add timestamp to ensure params always change, even for same activity
+    router.push({
+      pathname: '/(tabs)/log',
+      params: { 
+        formMode: 'edit',
+        activityData: JSON.stringify(activity),
+        _ts: Date.now().toString(), // Timestamp to force param change
+      },
+    });
   };
   
   const toggleExpand = (activityId: string) => {
@@ -192,7 +262,10 @@ export function LogbookScreen() {
             style={[
               styles.filterChip,
               selectedTypeFilter === 'training' && styles.filterChipActive,
-              selectedTypeFilter === 'training' && { backgroundColor: theme.colors.info },
+              selectedTypeFilter === 'training' && { 
+                backgroundColor: theme.colors.info,
+                borderColor: theme.colors.info,
+              },
             ]}
             onPress={() => {
               hapticSelect();
@@ -219,7 +292,10 @@ export function LogbookScreen() {
             style={[
               styles.filterChip,
               selectedTypeFilter === 'exercise' && styles.filterChipActive,
-              selectedTypeFilter === 'exercise' && { backgroundColor: theme.colors.warning },
+              selectedTypeFilter === 'exercise' && { 
+                backgroundColor: theme.colors.warning,
+                borderColor: theme.colors.warning,
+              },
             ]}
             onPress={() => {
               hapticSelect();
@@ -246,7 +322,10 @@ export function LogbookScreen() {
             style={[
               styles.filterChip,
               selectedTypeFilter === 'operation' && styles.filterChipActive,
-              selectedTypeFilter === 'operation' && { backgroundColor: theme.colors.error },
+              selectedTypeFilter === 'operation' && { 
+                backgroundColor: theme.colors.error,
+                borderColor: theme.colors.error,
+              },
             ]}
             onPress={() => {
               hapticSelect();
@@ -283,14 +362,14 @@ export function LogbookScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.md + insets.bottom + 60 }]}
         refreshControl={
           <RefreshControl
-            refreshing={loading}
-            onRefresh={refresh}
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
             tintColor={theme.colors.primary}
           />
         }
       >
         {filteredActivities.length === 0 && activities.length === 0 ? (
-          <Card style={styles.emptyCard} glass elevated>
+          <Card style={styles.emptyCard} glass>
             <Ionicons name="book-outline" size={64} color={theme.colors.textTertiary} />
             <Text variant="headingMedium" color="textSecondary" style={styles.emptyTitle}>
               {t('logbook.empty')}
@@ -310,7 +389,7 @@ export function LogbookScreen() {
             </Button>
           </Card>
         ) : filteredActivities.length === 0 ? (
-          <Card style={styles.emptyCard} glass elevated>
+          <Card style={styles.emptyCard} glass>
             <Ionicons name="search-outline" size={64} color={theme.colors.textTertiary} />
             <Text variant="headingMedium" color="textSecondary" style={styles.emptyTitle}>
               {t('logbook.noResults')}
@@ -341,7 +420,7 @@ export function LogbookScreen() {
               const isExpanded = expandedActivityId === activity.id;
               
               return (
-                <Card key={activity.id} style={styles.activityCard} glass elevated>
+                <Card key={activity.id} style={styles.activityCard} glass>
                   <TouchableOpacity
                     onPress={() => toggleExpand(activity.id)}
                     activeOpacity={0.7}
@@ -352,10 +431,19 @@ export function LogbookScreen() {
                       </View>
                       <View style={styles.activityHeaderContent}>
                         <Text variant="body" style={styles.activityTitle}>{activity.title}</Text>
-                        <View style={[styles.typeBadge, { backgroundColor: typeColor + '20' }]}>
-                          <Text variant="caption" style={{ color: typeColor, fontWeight: '600' }}>
-                            {typeLabel}
-                          </Text>
+                        <View style={styles.badgesContainer}>
+                          <View style={[styles.typeBadge, { backgroundColor: typeColor + '20' }]}>
+                            <Text variant="caption" style={{ color: typeColor, fontWeight: '600' }}>
+                              {typeLabel}
+                            </Text>
+                          </View>
+                          {activity.type === 'operation' && activity.category && (
+                            <View style={[styles.categoryBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                              <Text variant="caption" style={{ color: theme.colors.success, fontWeight: '600' }}>
+                                {getCategoryLabel(activity.category)}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       </View>
                       <Ionicons 
@@ -403,11 +491,11 @@ export function LogbookScreen() {
                       
                       <View style={styles.actionButtons}>
                         <TouchableOpacity
-                          style={styles.actionButton}
+                          style={[styles.actionButton, styles.editButton]}
                           onPress={() => handleEditActivity(activity)}
                         >
                           <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
-                          <Text variant="body" color="primary">
+                          <Text variant="body" style={{ color: theme.colors.primary }}>
                             {t('common.edit')}
                           </Text>
                         </TouchableOpacity>
@@ -462,6 +550,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     searchInput: {
       flex: 1,
       fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
       color: theme.colors.textPrimary,
       padding: 0,
     },
@@ -554,8 +643,17 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       fontWeight: '600',
       fontSize: theme.typography.fontSize.lg,
     },
+    badgesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
+    },
     typeBadge: {
-      alignSelf: 'flex-start',
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.borderRadius.sm,
+    },
+    categoryBadge: {
       paddingHorizontal: theme.spacing.sm,
       paddingVertical: theme.spacing.xs,
       borderRadius: theme.borderRadius.sm,
@@ -603,6 +701,10 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderRadius: theme.borderRadius.md,
       borderWidth: 1,
       borderColor: theme.colors.border,
+    },
+    editButton: {
+      backgroundColor: theme.colors.primary + '10',
+      borderColor: theme.colors.primary + '30',
     },
     deleteButton: {
       backgroundColor: theme.colors.error + '10',

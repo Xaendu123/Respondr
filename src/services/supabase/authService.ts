@@ -12,6 +12,8 @@ export interface SignUpData {
   email: string;
   password: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface SignInData {
@@ -48,6 +50,8 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
     options: {
       data: {
         display_name: data.displayName,
+        first_name: data.firstName,
+        last_name: data.lastName,
       },
       emailRedirectTo: 'respondr://auth/confirm',
     },
@@ -136,13 +140,23 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
     throw new Error('User creation failed');
   }
 
-  // 2. Check if we have a session (user might need email confirmation)
-  const { data: sessionData } = await supabase.auth.getSession();
+  // 2. Check if email confirmation is required
+  // Even if a session exists, we need to check if the email is confirmed
+  // Supabase may create a session immediately but email confirmation is still required
+  const isEmailConfirmed = authData.user.email_confirmed_at !== null && 
+                           authData.user.email_confirmed_at !== undefined;
   
-  if (!sessionData?.session) {
-    // No session - email confirmation is required
+  // Also check session to be safe
+  const { data: sessionData } = await supabase.auth.getSession();
+  const hasValidSession = sessionData?.session !== null && sessionData?.session !== undefined;
+  
+  // Email confirmation is required if:
+  // 1. Email is not confirmed, OR
+  // 2. No valid session exists
+  if (!isEmailConfirmed || !hasValidSession) {
+    // Email confirmation is required
     // The trigger should have created the profile, but we can't verify it due to RLS
-    // (RLS blocks reads when user doesn't have a session)
+    // (RLS blocks reads when user doesn't have a session or email isn't confirmed)
     // This is fine - the profile exists, we just can't read it until email is confirmed
     return {
       user: null,
@@ -170,11 +184,9 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
       // Other errors might be recoverable
       if (checkError.code === 'PGRST116') {
         // Not found - profile doesn't exist, will create it below
-        console.log('Profile not found (PGRST116), will create it');
       } else if (checkError.code === '42501' || checkError.message?.includes('permission denied') || checkError.message?.includes('row-level security')) {
         // RLS blocking read - profile likely exists but we can't read it without proper session
         // This is OK - the trigger created it, we just can't verify it
-        console.log('Profile query blocked by RLS - profile likely exists, trigger should have created it');
         // Return early - profile exists but we can't read it yet (will be available after email confirmation)
         return {
           user: null,
@@ -204,6 +216,8 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
             display_name: authData.user.user_metadata?.display_name || 
                           data.displayName ||
                           extractDisplayNameFromEmail(authData.user.email || data.email),
+            first_name: authData.user.user_metadata?.first_name || data.firstName,
+            last_name: authData.user.user_metadata?.last_name || data.lastName,
           })
           .select()
           .single();
@@ -234,7 +248,6 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
             );
           }
         } else if (newProfile) {
-          console.log('Profile created manually as fallback');
           profile = newProfile;
         } else {
           throw new Error(
@@ -394,7 +407,6 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
       // For RLS or other errors, retry with exponential backoff
       if (attempt < maxRetries - 1) {
         const delay = 200 * Math.pow(2, attempt); // 200ms, 400ms, 800ms
-        console.log(`Profile query failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -431,7 +443,6 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
         // Check if it's a duplicate key error (profile was created by trigger but query was too fast)
         if (createError.code === '23505') {
           // Duplicate key - profile exists, try to fetch it again
-          console.log('Profile creation returned duplicate key, fetching existing profile...');
           const { data: existingProfile, error: fetchError } = await supabase
             .from('profiles')
             .select('*')
@@ -444,7 +455,6 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
           }
           
           if (existingProfile) {
-            console.log('Successfully retrieved profile after duplicate key error');
             return mapProfileToUserProfile(existingProfile);
           }
         }
@@ -454,7 +464,6 @@ export const signIn = async (data: SignInData): Promise<UserProfile> => {
       }
       
       if (newProfile) {
-        console.log('Profile created successfully as fallback during sign in');
         return mapProfileToUserProfile(newProfile);
       }
     } catch (fallbackError: any) {
@@ -792,8 +801,6 @@ export async function updatePrivacySettings(settings: {
     updateData.marketing_consent = settings.marketingConsent;
   }
 
-  console.log('Updating privacy settings:', updateData);
-
   const { data, error } = await supabase
     .from('profiles')
     .update(updateData)
@@ -806,7 +813,6 @@ export async function updatePrivacySettings(settings: {
     throw new Error(error.message);
   }
 
-  console.log('Privacy settings updated successfully:', data);
 }
 
 /**

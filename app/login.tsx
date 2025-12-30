@@ -153,19 +153,6 @@ export default function LoginScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.heroSection}
       >
-        {/* Back Button */}
-        {router.canGoBack() && (
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => {
-              hapticLight();
-              router.back();
-            }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-        
         {/* Emergency Icons Background */}
         <View style={styles.iconsBackground}>
           <Ionicons name="flash" size={80} color="rgba(255, 255, 255, 0.08)" style={styles.icon1} />
@@ -206,93 +193,95 @@ export default function LoginScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.formContent}>
-            <Text variant="headingMedium" style={styles.welcomeText}>
-              {t('auth.welcomeBack')}
-            </Text>
-            
-            {/* Login Form */}
-            <View style={styles.formCard}>
-            <View>
-              <Input
-                label={t('auth.email')}
-                value={email}
-                onChangeText={handleEmailChange}
-                placeholder="name@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="username"
-              />
-              {emailError && (
-                <Text variant="caption" style={styles.errorText}>
-                  {emailError}
-                </Text>
-              )}
-            </View>
-            
-            <View>
-              <Input
-                label={t('auth.password')}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                textContentType="password"
-              />
-              <TouchableOpacity 
-                style={styles.showPasswordButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons 
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
-                  size={20} 
-                  color={theme.colors.textSecondary} 
-                />
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.forgotPassword}
-              onPress={handleForgotPassword}
-            >
-              <Text variant="caption" color="primary">
-                {t('auth.forgotPassword')}
+              <Text variant="headingMedium" style={styles.welcomeText}>
+                {t('auth.welcomeBack')}
               </Text>
-            </TouchableOpacity>
-            
-            <LinearGradient
-              colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
-            >
-              <TouchableOpacity 
-                onPress={handleLogin}
-                disabled={isLoading}
-                style={styles.loginButtonInner}
-              >
-                <Text style={styles.loginButtonText}>
-                  {isLoading ? t('common.loading') : t('auth.signIn')}
+              
+              <View style={styles.formTopSection}>
+                {/* Login Form */}
+                <View style={styles.formCard}>
+                <View style={styles.inputWrapper}>
+                  <Input
+                    label={t('auth.email')}
+                    value={email}
+                    onChangeText={handleEmailChange}
+                    placeholder="name@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    textContentType="username"
+                  />
+                  {emailError && (
+                    <Text variant="caption" style={styles.errorText}>
+                      {emailError}
+                    </Text>
+                  )}
+                </View>
+                
+                <View style={styles.inputWrapper}>
+                  <Input
+                    label={t('auth.password')}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="password"
+                    textContentType="password"
+                  />
+                  <TouchableOpacity 
+                    style={styles.showPasswordButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons 
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                      size={20} 
+                      color={theme.colors.textSecondary} 
+                    />
+                  </TouchableOpacity>
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.forgotPassword}
+                  onPress={handleForgotPassword}
+                >
+                  <Text variant="caption" color="primary">
+                    {t('auth.forgotPassword')}
+                  </Text>
+                </TouchableOpacity>
+                
+                <LinearGradient
+                  colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.loginButton}
+                >
+                  <TouchableOpacity 
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                    style={styles.loginButtonInner}
+                  >
+                    <Text style={styles.loginButtonText}>
+                      {isLoading ? t('common.loading') : t('auth.signIn')}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </LinearGradient>
+              </View>
+              </View>
+              
+              {/* Register Link - Fixed at bottom */}
+              <View style={styles.registerContainer}>
+                <Text variant="body" color="textSecondary">
+                  {t('auth.noAccount')}{' '}
                 </Text>
-                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-          
-          {/* Register Link */}
-          <View style={styles.registerContainer}>
-            <Text variant="body" color="textSecondary">
-              {t('auth.noAccount')}{' '}
-            </Text>
-            <TouchableOpacity onPress={handleRegister}>
-              <Text variant="body" color="primary" style={styles.registerLink}>
-                {t('auth.signUp')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          </View>
+                <TouchableOpacity onPress={handleRegister}>
+                  <Text variant="body" color="primary" style={styles.registerLink}>
+                    {t('auth.signUp')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -314,20 +303,6 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       overflow: 'visible',
       paddingBottom: 40,
       paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    },
-    backButton: {
-      position: 'absolute',
-      top: Platform.OS === 'ios' ? 50 : 20,
-      left: theme.spacing.lg,
-      zIndex: 10,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     iconsBackground: {
       ...StyleSheet.absoluteFillObject,
@@ -388,6 +363,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     appName: {
       fontSize: 42,
       fontWeight: '800',
+      fontFamily: theme.typography.fontFamily.bold,
       color: '#FFFFFF',
       letterSpacing: -1,
       lineHeight: 52,
@@ -425,13 +401,21 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       padding: theme.spacing.xl,
       paddingTop: theme.spacing.xl,
       minHeight: '100%',
+      justifyContent: 'space-between',
+    },
+    formTopSection: {
+      flex: 1,
+      justifyContent: 'center',
     },
     welcomeText: {
-      marginBottom: theme.spacing.lg,
+      marginBottom: theme.spacing.md,
       textAlign: 'center',
     },
     formCard: {
-      gap: theme.spacing.md,
+      gap: theme.spacing.xs,
+    },
+    inputWrapper: {
+      marginBottom: -8,
     },
     showPasswordButton: {
       position: 'absolute',
@@ -444,7 +428,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       alignSelf: 'flex-end',
     },
     loginButton: {
-      marginTop: theme.spacing.md,
+      marginTop: theme.spacing.sm,
       borderRadius: theme.borderRadius.full,
       overflow: 'hidden',
       shadowColor: theme.colors.primary,
@@ -471,7 +455,8 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: theme.spacing.md,
+      paddingBottom: theme.spacing.md,
+      paddingTop: theme.spacing.md,
     },
     registerLink: {
       fontWeight: '600',

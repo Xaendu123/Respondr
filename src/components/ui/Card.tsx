@@ -35,13 +35,18 @@ export function Card({ elevated = false, glass = false, style, children, ...prop
         style={[
           {
             backgroundColor: theme.colors.glassBackground,
-            borderRadius: theme.borderRadius.lg,
-            padding: theme.spacing.md,
-            borderWidth: 1,
+            borderRadius: theme.borderRadius.xl, // Larger radius for modern look
+            padding: theme.spacing.lg, // More padding for spacious feel
+            borderWidth: 1, // Subtle border for glassmorphism
             borderColor: theme.colors.glassBorder,
             overflow: 'hidden',
+            // Remove shadows for glass cards
+            elevation: 0,
+            shadowColor: 'transparent',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0,
+            shadowRadius: 0,
           },
-          elevated && theme.shadows.lg,
           style,
         ]}
         {...props}
@@ -51,17 +56,28 @@ export function Card({ elevated = false, glass = false, style, children, ...prop
     );
   }
   
+  // For web or when glass is requested but BlurView isn't available
   return (
     <View
       style={[
         {
           backgroundColor: glass ? theme.colors.glassBackground : (elevated ? theme.colors.surfaceElevated : theme.colors.surface),
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing.md,
-          borderWidth: 1,
-          borderColor: glass ? theme.colors.glassBorder : theme.colors.border,
+          borderRadius: theme.borderRadius.xl, // Larger radius for modern look
+          padding: theme.spacing.lg, // More padding for spacious feel
+          borderWidth: glass ? 1 : 1, // Border for both glass and regular cards
+          borderColor: glass ? theme.colors.glassBorder : theme.colors.border, // Use appropriate border color
+          // Remove shadows for glass cards (glassmorphism replaces shadows)
+          ...(glass && {
+            elevation: 0,
+            shadowColor: 'transparent',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0,
+            shadowRadius: 0,
+          }),
         },
-        elevated && theme.shadows.md,
+        // Shadows only for non-glass cards
+        !glass && elevated && theme.shadows.lg, // Shadow only for non-glass elevated cards
+        !glass && !elevated && theme.shadows.md, // Medium shadow for non-glass non-elevated cards
         style,
       ]}
       {...props}

@@ -30,39 +30,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Initialize auth state on mount
+  // Initialize auth state on mount and when app comes to foreground
   useEffect(() => {
-    // Initialize auth asynchronously to prevent blocking app load
-    initializeAuth().catch((error) => {
-      console.error('Auth initialization error:', error);
-      setIsLoading(false);
-    });
+    let isMounted = true;
     
-    // Listen for auth state changes
-    let subscription: any;
-    try {
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          await loadUserProfile();
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          await loadUserProfile();
-        } else if (event === 'USER_UPDATED' && session) {
-          // Email confirmed - user is now fully authenticated
-          await loadUserProfile();
+    // Initialize auth asynchronously to prevent blocking app load
+    initializeAuth()
+      .catch((error) => {
+        console.error('Auth initialization error:', error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      })
+      .finally(() => {
+        // Ensure loading is always set to false, even if there's an error
+        if (isMounted) {
+          // Add a small delay to ensure state updates properly
+          setTimeout(() => {
+            if (isMounted) {
+              setIsLoading(false);
+            }
+          }, 100);
         }
       });
-      subscription = data.subscription;
-    } catch (error) {
-      console.error('Failed to set up auth state listener:', error);
-    }
     
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      isMounted = false;
     };
+    
   }, []);
   
   /**
@@ -71,7 +66,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function initializeAuth() {
     try {
       // Use supabase.auth.getSession() directly to get { data, error } format
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      // Wrap in timeout to prevent hanging indefinitely
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => 
+        setTimeout(() => resolve({ data: null, error: { message: 'Session check timeout' } }), 8000)
+      );
+      
+      const result = await Promise.race([sessionPromise, timeoutPromise]);
+      const { data: sessionData, error: sessionError } = result;
       
       // Handle invalid refresh token error (stale session)
       if (sessionError) {
@@ -167,6 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: request.email,
         password: request.password,
         displayName: request.displayName,
+        firstName: request.firstName,
+        lastName: request.lastName,
       });
       
       if (result.needsConfirmation) {

@@ -81,88 +81,96 @@ export interface Theme {
   animation: typeof tokens.animation;
 }
 
-// Light theme - Modern, clean design matching RESQ aesthetics
+// Light theme - Soft slate backgrounds with Respondr Orange branding
 const lightThemeColors: ThemeColors = {
-  primary: '#C62828', // Deep Red - primary brand color
-  primaryDark: '#8E0000', // Darker red
-  primaryLight: '#FF6659', // Lighter red
+  primary: '#f97316', // Respondr Orange (orange-500) - Main brand color
+  primaryDark: '#ea580c', // Deep Orange (orange-600) - Gradient start
+  primaryLight: '#fb923c', // Light Orange (orange-400) - Highlights
   onPrimary: '#FFFFFF',
   
-  // Gradient colors for headers and accents
-  gradientStart: '#C62828', // Deep Red
-  gradientEnd: '#FF6F00', // Orange
+  // Gradient colors for headers and accents - Orange to Red gradient
+  gradientStart: '#f97316', // Respondr Orange (orange-500) - Vibrant orange start
+  gradientEnd: '#dc2626', // Signal Red (red-600) - Deep red end
   
-  background: '#F5F5F5', // Light gray background
-  backgroundSecondary: '#EEEEEE', // Slightly darker gray
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
+  // Background colors - White background, grey cards for elevation
+  background: '#ffffff', // Main Background - White
+  backgroundSecondary: '#f1f5f9', // Subtle Gray (slate-100) - Footer/Elements/Cards
+  surface: '#f1f5f9', // Surface (slate-100) - Cards/Nav matching filter chips
+  surfaceElevated: '#f1f5f9', // Surface (slate-100) - Elevated cards
   
   // Glassmorphism properties
-  glassBackground: 'rgba(255, 255, 255, 0.7)', // Semi-transparent white
-  glassBorder: 'rgba(255, 255, 255, 0.3)', // Subtle border
+  glassBackground: 'rgba(241, 245, 249, 0.8)', // Semi-transparent grey (slate-100) for glassmorphism
+  glassBorder: 'rgba(226, 232, 240, 0.5)', // Subtle slate-200 border
   
-  textPrimary: '#212121', // Almost black - strong contrast
-  textSecondary: '#757575', // Gray - readable secondary
-  textTertiary: '#BDBDBD', // Light gray
-  textInverse: '#FFFFFF',
+  // Text colors - High contrast but softer than pure black
+  textPrimary: '#0f172a', // Headings (slate-900) - Almost Black
+  textSecondary: '#475569', // Body Text (slate-600) - Dark Gray
+  textTertiary: '#64748b', // Meta Info (slate-500) - Medium Gray
+  textInverse: '#ffffff', // White for inverse text
   
-  border: '#E0E0E0', // Light gray border
-  divider: '#F5F5F5', // Very light divider
+  // Border and divider - Soft slate borders
+  border: '#e2e8f0', // Borders (slate-200) - Dividers
+  divider: '#e2e8f0', // Borders (slate-200) - Dividers
   
-  error: '#C62828', // Red - operations/emergencies (matching primary)
-  errorBackground: '#FFEBEE',
+  // Semantic colors - using brand colors
+  error: '#dc2626', // Signal Red (red-600) - operations/emergencies
+  errorBackground: '#fff7ed', // Soft Orange (orange-50) - Subtle error background
   success: '#2E7D32', // Green
   successBackground: '#E8F5E9',
-  warning: '#F57C00', // Orange - exercises/drills
-  warningBackground: '#FFF3E0',
-  info: '#FBC02D', // Yellow - training/education
-  infoBackground: '#FFFDE7',
+  warning: '#f97316', // Respondr Orange - exercises/drills
+  warningBackground: '#fff7ed', // Soft Orange (orange-50) - Subtle warning background
+  info: '#fde047', // Spark Yellow (yellow-300) - training/education/flame tip
+  infoBackground: '#fff7ed', // Soft Orange (orange-50) - Subtle info background
   
-  pressed: 'rgba(198, 40, 40, 0.08)',
-  disabled: '#BDBDBD',
-  disabledBackground: '#F5F5F5',
+  pressed: 'rgba(249, 115, 22, 0.08)', // Respondr Orange with opacity
+  disabled: '#64748b', // Meta Info (slate-500) - Medium Gray
+  disabledBackground: '#f1f5f9', // Subtle Gray (slate-100)
 };
 
-// Dark theme - Modern, clean design matching RESQ aesthetics
+// Dark theme - Slate-based color scheme with Respondr Orange branding
 const darkThemeColors: ThemeColors = {
-  primary: '#FF7043', // Orange-red that complements the orange color scheme
-  primaryDark: '#C62828', // Deep red
-  primaryLight: '#FF8A65', // Light orange-red
+  primary: '#f97316', // Respondr Orange (orange-500) - Main brand color
+  primaryDark: '#ea580c', // Deep Orange (orange-600) - Gradient start
+  primaryLight: '#fb923c', // Light Orange (orange-400) - Highlights
   onPrimary: '#FFFFFF',
   
-  // Gradient colors for headers and accents
-  gradientStart: '#C62828', // Deep Red
-  gradientEnd: '#FF6F00', // Orange
+  // Gradient colors for headers and accents - Orange to Red gradient (matching promotional banner)
+  gradientStart: '#f97316', // Respondr Orange (orange-500) - Vibrant orange start
+  gradientEnd: '#ef4444', // Signal Red (red-500) - Deep red end
   
-  background: '#121212', // Dark background
-  backgroundSecondary: '#1E1E1E', // Slightly lighter dark
-  surface: '#1E1E1E', // Card surface
-  surfaceElevated: '#2C2C2C', // Elevated surface
+  // Background colors - Slate-based
+  background: '#020617', // Deepest Night (slate-950) - Main background
+  backgroundSecondary: '#0f172a', // Dark Surface (slate-900) - Secondary background
+  surface: '#0f172a', // Dark Surface (slate-900) - Cards/Nav
+  surfaceElevated: '#1e293b', // Lighter Surface (slate-800) - Elevated cards
   
-  // Glassmorphism properties
-  glassBackground: 'rgba(30, 30, 30, 0.7)', // Semi-transparent dark
-  glassBorder: 'rgba(255, 255, 255, 0.1)', // Subtle light border
+  // Glassmorphism properties - using slate colors
+  glassBackground: 'rgba(15, 23, 42, 0.7)', // Semi-transparent slate-900
+  glassBorder: 'rgba(51, 65, 85, 0.3)', // Subtle slate-700 border
   
-  textPrimary: '#FFFFFF', // White - high contrast
-  textSecondary: '#B0B0B0', // Light gray - clear secondary
-  textTertiary: '#707070', // Medium gray
-  textInverse: '#121212',
+  // Text colors - Slate-based
+  textPrimary: '#f8fafc', // Headlines (slate-50) - Fast Weiß
+  textSecondary: '#94a3b8', // Body Text (slate-400) - Lesbares Grau
+  textTertiary: '#64748b', // Subtle Text (slate-500) - Details
+  textInverse: '#020617', // Inverse text (darkest background)
   
-  border: '#333333', // Dark border
-  divider: '#2C2C2C', // Dark divider
+  // Border and divider - Slate-based
+  border: '#1e293b', // Lighter Surface (slate-800) - Borders/Hovers
+  divider: '#334155', // UI Elements (slate-700) - Dividers/Inputs
   
-  error: '#FF7043', // Orange-red - operations/emergencies
-  errorBackground: '#3E1F1F',
+  // Semantic colors - using Respondr brand colors with slate backgrounds
+  error: '#ef4444', // Signal Red (red-500) - operations/emergencies
+  errorBackground: 'rgba(239, 68, 68, 0.1)', // Subtle error background
   success: '#66BB6A', // Light green
-  successBackground: '#1F3E1F',
-  warning: '#FFA726', // Light orange
-  warningBackground: '#3E2F1F',
-  info: '#FFD54F', // Light yellow - training/education
-  infoBackground: '#3E3A1F',
+  successBackground: 'rgba(102, 187, 106, 0.1)', // Subtle success background
+  warning: '#f97316', // Respondr Orange - exercises/drills
+  warningBackground: 'rgba(249, 115, 22, 0.1)', // Subtle warning background
+  info: '#fde047', // Spark Yellow (yellow-300) - training/education/flame tip
+  infoBackground: 'rgba(253, 224, 71, 0.1)', // Subtle info background
   
-  pressed: 'rgba(255, 112, 67, 0.12)',
-  disabled: '#707070',
-  disabledBackground: '#2C2C2C',
+  pressed: 'rgba(249, 115, 22, 0.12)', // Respondr Orange with opacity
+  disabled: '#64748b', // Subtle Text (slate-500)
+  disabledBackground: '#1e293b', // Lighter Surface (slate-800)
 };
 
 /**

@@ -22,12 +22,15 @@ export default function RegisterScreen() {
   const { register } = useAuth();
   const router = useRouter();
   
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   
@@ -53,8 +56,25 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     // Clear previous errors
     setEmailError('');
+    setFirstNameError('');
+    setLastNameError('');
     
-    if (!displayName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    // Validate required fields
+    if (!firstName.trim()) {
+      hapticError();
+      setFirstNameError(t('auth.firstNameRequired'));
+      Alert.alert(t('errors.validation'), t('auth.firstNameRequired'));
+      return;
+    }
+    
+    if (!lastName.trim()) {
+      hapticError();
+      setLastNameError(t('auth.lastNameRequired'));
+      Alert.alert(t('errors.validation'), t('auth.lastNameRequired'));
+      return;
+    }
+    
+    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       hapticError();
       Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
       return;
@@ -82,10 +102,15 @@ export default function RegisterScreen() {
     
     setIsRegistering(true);
     try {
+      // Construct displayName from firstName and lastName
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      
       const confirmationEmail = await register({ 
         email: email.trim(), 
         password, 
-        displayName: displayName.trim(),
+        displayName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
       });
       hapticSuccess();
       
@@ -138,9 +163,14 @@ export default function RegisterScreen() {
         style={styles.heroSection}
       >
         {/* Back Button */}
-        <TouchableOpacity style={styles.backButton} onPress={handleBackToLogin}>
-          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
+        {router.canGoBack() && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleBackToLogin}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
         
         {/* Emergency Icons Background */}
         <View style={styles.iconsBackground}>
@@ -163,7 +193,7 @@ export default function RegisterScreen() {
                 <Ionicons name="medical" size={28} color="#FFFFFF" />
               </View>
             </View>
-            <Text style={styles.title}>{t('auth.createAccount')}</Text>
+            <Text style={styles.appName}>Respondr</Text>
             <Text style={styles.tagline}>{t('auth.tagline')}</Text>
           </View>
         </View>
@@ -182,18 +212,47 @@ export default function RegisterScreen() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.formContent}>
-          
-          {/* Registration Form */}
-          <View style={styles.formCard}>
-            <Input
-              label={t('auth.displayName')}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder={t('auth.displayNamePlaceholder')}
-              autoCapitalize="words"
-            />
+            <Text variant="headingMedium" style={styles.welcomeText}>
+              {t('auth.createAccount')}
+            </Text>
             
-            <View>
+            {/* Registration Form */}
+            <View style={styles.formCard}>
+            <View style={styles.nameRow}>
+              <View style={[styles.nameInputContainer, styles.inputWrapper]}>
+                <Input
+                  label={t('auth.firstName')}
+                  value={firstName}
+                  onChangeText={(text) => {
+                    setFirstName(text);
+                    if (firstNameError) {
+                      setFirstNameError('');
+                    }
+                  }}
+                  placeholder={t('auth.firstNamePlaceholder')}
+                  autoCapitalize="words"
+                  error={firstNameError}
+                />
+              </View>
+              
+              <View style={[styles.nameInputContainer, styles.inputWrapper]}>
+                <Input
+                  label={t('auth.lastName')}
+                  value={lastName}
+                  onChangeText={(text) => {
+                    setLastName(text);
+                    if (lastNameError) {
+                      setLastNameError('');
+                    }
+                  }}
+                  placeholder={t('auth.lastNamePlaceholder')}
+                  autoCapitalize="words"
+                  error={lastNameError}
+                />
+              </View>
+            </View>
+            
+            <View style={styles.inputWrapper}>
               <Input
                 label={t('auth.email')}
                 value={email}
@@ -230,7 +289,7 @@ export default function RegisterScreen() {
               )}
             </View>
             
-            <View>
+            <View style={styles.inputWrapper}>
               <Input
                 label={t('auth.password')}
                 value={password}
@@ -253,16 +312,18 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
             
-            <Input
-              label={t('auth.confirmPassword')}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="••••••••"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoComplete="password-new"
-              textContentType="newPassword"
-            />
+            <View style={styles.inputWrapper}>
+              <Input
+                label={t('auth.confirmPassword')}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="••••••••"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password-new"
+                textContentType="newPassword"
+              />
+            </View>
             
             <LinearGradient
               colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
@@ -282,7 +343,7 @@ export default function RegisterScreen() {
                     <Text style={styles.registerButtonText}>
                       {t('auth.signUp')}
                     </Text>
-                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                   </>
                 )}
               </TouchableOpacity>
@@ -321,13 +382,21 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       position: 'relative',
       overflow: 'visible',
       paddingBottom: 40,
+      paddingTop: Platform.OS === 'ios' ? 50 : 20,
     },
     backButton: {
       position: 'absolute',
-      top: 50,
+      top: Platform.OS === 'ios' ? 50 : 20,
       left: theme.spacing.lg,
       zIndex: 10,
-      padding: theme.spacing.sm,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     iconsBackground: {
       ...StyleSheet.absoluteFillObject,
@@ -385,12 +454,13 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderRadius: 28,
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
-    title: {
-      fontSize: 32,
+    appName: {
+      fontSize: 42,
       fontWeight: '800',
+      fontFamily: theme.typography.fontFamily.bold,
       color: '#FFFFFF',
-      letterSpacing: -0.5,
-      lineHeight: 40,
+      letterSpacing: -1,
+      lineHeight: 52,
       includeFontPadding: false,
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 2 },
@@ -398,10 +468,11 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       paddingVertical: 4,
     },
     tagline: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '600',
-      color: 'rgba(255, 255, 255, 0.85)',
-      letterSpacing: 0.3,
+      color: 'rgba(255, 255, 255, 0.9)',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
     },
     formSection: {
       flex: 1,
@@ -422,11 +493,25 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     formContent: {
       flex: 1,
       padding: theme.spacing.xl,
-      paddingTop: theme.spacing.lg,
+      paddingTop: theme.spacing.xl,
       minHeight: '100%',
     },
+    welcomeText: {
+      marginBottom: theme.spacing.md,
+      textAlign: 'center',
+    },
     formCard: {
+      gap: theme.spacing.xs,
+    },
+    nameRow: {
+      flexDirection: 'row',
       gap: theme.spacing.sm,
+    },
+    nameInputContainer: {
+      flex: 1,
+    },
+    inputWrapper: {
+      marginBottom: -8,
     },
     showPasswordButton: {
       position: 'absolute',
@@ -464,7 +549,6 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
     },
     loginLink: {
       fontWeight: '600',
@@ -481,9 +565,9 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderWidth: 1,
       borderColor: theme.colors.primary + '40',
       borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      marginTop: theme.spacing.sm,
-      gap: theme.spacing.sm,
+      padding: theme.spacing.sm,
+      marginTop: theme.spacing.xs,
+      gap: theme.spacing.xs,
     },
     infoContent: {
       flex: 1,

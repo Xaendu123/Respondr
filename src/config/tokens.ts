@@ -28,10 +28,10 @@ export const tokens = {
   
   typography: {
     fontFamily: {
-      regular: 'System',
-      medium: 'System',
-      semibold: 'System',
-      bold: 'System',
+      regular: 'Poppins_400Regular',
+      medium: 'Poppins_500Medium',
+      semibold: 'Poppins_600SemiBold',
+      bold: 'Poppins_700Bold',
     },
     fontSize: {
       xs: 12,

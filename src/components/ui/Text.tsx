@@ -107,6 +107,22 @@ export function Text({
   const colorKey = color ? colorMap[color] : 'textPrimary';
   const colorValue = theme.colors[colorKey] || theme.colors.textPrimary;
   
+  // Map fontWeight to fontFamily
+  const getFontFamily = (fontWeight: string): string => {
+    switch (fontWeight) {
+      case '400':
+        return theme.typography.fontFamily.regular;
+      case '500':
+        return theme.typography.fontFamily.medium;
+      case '600':
+        return theme.typography.fontFamily.semibold;
+      case '700':
+        return theme.typography.fontFamily.bold;
+      default:
+        return theme.typography.fontFamily.regular;
+    }
+  };
+
   return (
     <RNText
       style={[
@@ -114,6 +130,7 @@ export function Text({
           fontSize: variantStyle.fontSize,
           lineHeight: variantStyle.lineHeight,
           fontWeight: variantStyle.fontWeight,
+          fontFamily: getFontFamily(variantStyle.fontWeight),
           color: colorValue,
         },
         style,

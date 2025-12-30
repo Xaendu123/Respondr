@@ -31,6 +31,11 @@ export default function TabsLayout() {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
+          elevation: 0, // Remove shadow on Android
+          shadowColor: 'transparent', // Remove shadow on iOS
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0,
+          shadowRadius: 0,
         },
       }}
       screenListeners={{

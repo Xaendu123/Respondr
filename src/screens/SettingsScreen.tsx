@@ -87,7 +87,7 @@ export function SettingsScreen() {
             <Text variant="headingSmall">{t('settings.theme')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <TouchableOpacity
               style={styles.optionRow}
               onPress={() => handleThemeChange('light')}
@@ -140,7 +140,7 @@ export function SettingsScreen() {
             <Text variant="headingSmall">{t('settings.language')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <TouchableOpacity
               style={styles.optionRow}
               onPress={() => handleLanguageChange('de')}
@@ -182,7 +182,7 @@ export function SettingsScreen() {
             <Text variant="headingSmall">{t('settings.privacy')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <TouchableOpacity
               style={styles.optionRow}
               onPress={() => router.push('/privacy-settings')}
@@ -203,7 +203,7 @@ export function SettingsScreen() {
             <Text variant="headingSmall">{t('settings.legal')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <TouchableOpacity
               style={styles.optionRow}
               onPress={() => openLink(brand.metadata.privacyPolicyUrl)}
@@ -231,7 +231,7 @@ export function SettingsScreen() {
         </View>
         
         {/* About */}
-        <Card style={styles.aboutCard} glass elevated>
+        <Card style={styles.aboutCard} glass>
           <View style={styles.aboutContent}>
             <Ionicons name="information-circle-outline" size={48} color={theme.colors.primary} />
             <Text variant="body" color="textSecondary" style={styles.aboutText}>

@@ -18,6 +18,8 @@ export interface CreateActivityData {
   longitude?: number;
   unitId?: string;
   visibility?: 'private' | 'unit' | 'public';
+  category?: string;
+  falseAlarm?: boolean;
   tags?: string[];
   images?: string[];
 }
@@ -126,6 +128,8 @@ export const createActivity = async (activityData: CreateActivityData): Promise<
       longitude: activityData.longitude,
       unit_id: activityData.unitId,
       visibility: activityData.visibility || 'unit',
+      category: activityData.category || null,
+      false_alarm: activityData.falseAlarm || false,
       tags: activityData.tags,
       images: activityData.images,
       created_at: new Date().toISOString(),
@@ -168,6 +172,8 @@ export const updateActivity = async (activityData: UpdateActivityData): Promise<
       latitude: activityData.latitude,
       longitude: activityData.longitude,
       visibility: activityData.visibility,
+      category: activityData.category !== undefined ? (activityData.category || null) : undefined,
+      false_alarm: activityData.falseAlarm !== undefined ? activityData.falseAlarm : undefined,
       tags: activityData.tags,
       images: activityData.images,
       updated_at: new Date().toISOString(),
@@ -307,6 +313,8 @@ const mapActivityFromSupabase = (data: any): Activity => {
     latitude: data.latitude,
     longitude: data.longitude,
     visibility: data.visibility,
+    category: data.category,
+    falseAlarm: data.false_alarm || false,
     tags: data.tags || [],
     images: data.images || [],
     reactions: data.reactions?.map((r: any) => ({

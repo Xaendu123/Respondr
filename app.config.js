@@ -15,14 +15,9 @@ module.exports = ({ config }) => {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Log in build-time to help debug (only visible during build)
+  // Validate environment variables during build
   if (process.env.EAS_BUILD) {
-    console.log('Build-time environment variables:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseAnonKey,
-      urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
-      keyLength: supabaseAnonKey?.length || 0,
-    });
+    // Environment variables are validated below
   }
 
   // Validate that required variables are present

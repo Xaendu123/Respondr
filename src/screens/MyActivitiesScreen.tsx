@@ -103,7 +103,7 @@ export function MyActivitiesScreen() {
         }
       >
         {activities.length === 0 ? (
-          <Card style={styles.emptyCard} glass elevated>
+          <Card style={styles.emptyCard} glass>
             <Ionicons name="calendar-outline" size={64} color={theme.colors.textTertiary} />
             <Text variant="headingMedium" color="textSecondary" style={styles.emptyTitle}>
               {t('profile.noActivities')}
@@ -130,7 +130,7 @@ export function MyActivitiesScreen() {
               const typeLabel = getActivityTypeLabel(activity.type);
               
     return (
-      <Card key={activity.id} style={styles.activityCard} glass elevated>
+      <Card key={activity.id} style={styles.activityCard} glass>
                   <View style={styles.activityHeader}>
                     <View style={[styles.activityTypeIcon, { backgroundColor: typeColor + '15' }]}>
                       <Ionicons name={typeIcon as any} size={24} color={typeColor} />

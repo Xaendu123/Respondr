@@ -490,7 +490,7 @@ export function EditProfileScreen() {
             <Text variant="headingSmall">{t('profile.profilePicture')}</Text>
           </View>
           
-          <Card style={styles.avatarCard} elevated>
+          <Card style={styles.avatarCard} glass>
             <View style={styles.avatarSection}>
               <View style={styles.avatarWrapper}>
                 <Avatar size={120} name={displayName} imageUrl={avatarUrl} />
@@ -563,7 +563,7 @@ export function EditProfileScreen() {
             <Text variant="headingSmall">{t('profile.personalInfo')}</Text>
           </View>
           
-          <Card style={styles.sectionCard} elevated>
+          <Card style={styles.sectionCard} glass>
             <View style={styles.nameRow}>
               <View style={styles.nameField}>
                 <Input
@@ -601,7 +601,7 @@ export function EditProfileScreen() {
             <Text variant="headingSmall">{t('profile.professionalInfo')}</Text>
           </View>
           
-          <Card style={styles.sectionCard} elevated>
+          <Card style={styles.sectionCard} glass>
             <View style={styles.fieldHint}>
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.textTertiary} />
               <Text variant="caption" color="textTertiary" style={styles.hintText}>
@@ -672,7 +672,7 @@ export function EditProfileScreen() {
             <Text variant="headingSmall">{t('profile.bio')}</Text>
           </View>
           
-          <Card style={styles.sectionCard} elevated>
+          <Card style={styles.sectionCard} glass>
             <View style={styles.bioSection}>
               <View style={[styles.bioIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
                 <Ionicons name="document-text-outline" size={20} color={theme.colors.primary} />

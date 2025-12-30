@@ -56,15 +56,16 @@ export function Select({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-          },
+          }, 
         ]}
         onPress={() => setIsOpen(true)}
       >
         <Text 
           variant="body" 
-          color={selectedOption ? 'textPrimary' : 'textTertiary'}
+          color={selectedOption || value ? 'textPrimary' : 'textTertiary'}
+          style={selectedOption || value ? { fontWeight: '600' } : undefined}
         >
-          {selectedOption ? selectedOption.label : placeholder}
+          {selectedOption ? selectedOption.label : (value || placeholder)}
         </Text>
         <Ionicons 
           name="chevron-down" 
@@ -108,7 +109,7 @@ export function Select({
                     {
                       backgroundColor: 
                         item.value === value 
-                          ? theme.colors.primaryLight 
+                          ? theme.colors.primary 
                           : 'transparent',
                     },
                   ]}
@@ -119,15 +120,16 @@ export function Select({
                 >
                   <Text 
                     variant="body" 
-                    color={item.value === value ? 'primary' : 'textPrimary'}
+                    color={item.value === value ? 'textInverse' : 'textPrimary'}
+                    style={item.value === value ? { fontWeight: '600' } : undefined}
                   >
                     {item.label}
                   </Text>
                   {item.value === value && (
                     <Ionicons 
-                      name="checkmark" 
-                      size={20} 
-                      color={theme.colors.primary} 
+                      name="checkmark-circle" 
+                      size={24} 
+                      color={theme.colors.onPrimary} 
                     />
                   )}
                 </TouchableOpacity>

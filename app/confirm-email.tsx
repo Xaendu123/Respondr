@@ -110,9 +110,9 @@ export default function ConfirmEmailScreen() {
           [{ text: t('common.ok') }]
         );
       } else {
-        hapticError();
-        const errorMessage = error.message || t('auth.resendConfirmationFailed');
-        Alert.alert(t('errors.error'), errorMessage);
+      hapticError();
+      const errorMessage = error.message || t('auth.resendConfirmationFailed');
+      Alert.alert(t('errors.error'), errorMessage);
       }
     } finally {
       setIsResending(false);
@@ -313,6 +313,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   heroTitle: {
     fontSize: 32,
     fontWeight: '800',
+    fontFamily: theme.typography.fontFamily.bold,
     color: '#FFFFFF',
     letterSpacing: -0.5,
     lineHeight: 40,

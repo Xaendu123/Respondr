@@ -112,29 +112,8 @@ export const supabase = createClient(
   }
 );
 
-// Log configuration in development (helps debug production issues)
-if (__DEV__) {
-  console.log('Supabase Config:', {
-    url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
-    hasKey: !!supabaseAnonKey,
-    keyLength: supabaseAnonKey?.length || 0,
-    region: supabaseUrl?.includes('eu-central-2') ? 'eu-central-2' : 'unknown',
-  });
-}
-
-// In production, log configuration and test connection
+// In production, test connection
 if (!__DEV__) {
-  // Log configuration (helps debug TestFlight issues)
-  console.log('Supabase Configuration Check:', {
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey,
-    urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
-    keyLength: supabaseAnonKey?.length || 0,
-    fromConstants: !!Constants.expoConfig?.extra?.supabaseUrl,
-    fromProcessEnv: !!process.env.EXPO_PUBLIC_SUPABASE_URL,
-    constantsExtra: Object.keys(Constants.expoConfig?.extra || {}),
-  });
-  
   // Test connection silently in background if we have config
   if (supabaseUrl && supabaseAnonKey) {
     supabase.auth.getSession().catch((error) => {

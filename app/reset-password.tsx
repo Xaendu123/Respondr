@@ -13,12 +13,14 @@ import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet
 import { Input, Text } from '../src/components/ui';
 import { supabase } from '../src/config/supabase';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
 import { hapticError, hapticSuccess } from '../src/utils/haptics';
 
 export default function ResetPasswordScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { refreshUser } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ url?: string }>();
   
@@ -118,6 +120,12 @@ export default function ResetPasswordScreen() {
     
     setLoading(true);
     
+    // Safety timeout: ensure loading is cleared after 10 seconds no matter what
+    const safetyTimeout = setTimeout(() => {
+      console.warn('Password reset safety timeout - clearing loading state');
+      setLoading(false);
+    }, 10000);
+    
     try {
       // Check if we have a valid session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -152,39 +160,74 @@ export default function ResetPasswordScreen() {
       
       // Update password using Supabase
       // The session should now be set
-      const { error } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: password.trim(),
       });
       
-      if (error) {
-        throw error;
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        throw updateError;
       }
       
       hapticSuccess();
       
-      // Password reset successful - navigate immediately
-      // Don't wait for Alert to be dismissed
-      router.replace('/login');
+      // Clear safety timeout since we succeeded
+      clearTimeout(safetyTimeout);
       
-      // Show success message after a short delay to allow navigation
+      // Refresh user profile to ensure auth state is updated
+      try {
+        await refreshUser();
+      } catch (refreshError) {
+        console.warn('Failed to refresh user after password reset:', refreshError);
+        // Continue anyway - session is valid
+      }
+      
+      // Clear loading state immediately after successful password update
+      setLoading(false);
+      
+      // Password reset successful - user has a valid session, navigate to main app
+      // Use setTimeout to ensure state update completes before navigation
       setTimeout(() => {
-        Alert.alert(
-          t('auth.passwordResetSuccess'),
-          t('auth.passwordResetSuccessMessage'),
-          [{ text: t('common.ok') }]
-        );
-      }, 300);
+        try {
+          // Navigate to main app (tabs) since user is authenticated
+          router.replace('/(tabs)/log' as any);
+        } catch (navError) {
+          console.error('Navigation error:', navError);
+          // If replace fails, try push as fallback
+          try {
+            router.push('/(tabs)/log' as any);
+          } catch (pushError) {
+            console.error('Push navigation also failed:', pushError);
+            // Last resort: navigate to root, which will redirect based on auth
+            try {
+              router.replace('/' as any);
+            } catch (rootError) {
+              console.error('Root navigation also failed:', rootError);
+              // Show success and let app redirect naturally
+      Alert.alert(
+        t('auth.passwordResetSuccess'),
+        t('auth.passwordResetSuccessMessage'),
+                [{ text: t('common.ok') }]
+              );
+            }
+          }
+        }
+      }, 50);
     } catch (error: any) {
+      // Clear safety timeout on error
+      clearTimeout(safetyTimeout);
+      
       hapticError();
       console.error('Password reset error:', error);
+      
+      // Clear loading state immediately on error
+      setLoading(false);
+      
       Alert.alert(
         t('errors.auth'),
-        error.message || t('auth.passwordResetFailed')
+        error.message || t('auth.passwordResetFailed'),
+        [{ text: t('common.ok') }]
       );
-    } finally {
-      // ALWAYS clear loading state, no matter what happens
-      // This ensures the button never gets stuck on loading
-      setLoading(false);
     }
   };
   
@@ -244,7 +287,7 @@ export default function ResetPasswordScreen() {
             </Text>
             
             <View style={styles.formCard}>
-              <View>
+              <View style={styles.inputWrapper}>
                 <Input
                   label={t('auth.newPassword')}
                   value={password}
@@ -272,7 +315,7 @@ export default function ResetPasswordScreen() {
                 )}
               </View>
               
-              <View>
+              <View style={styles.inputWrapper}>
                 <Input
                   label={t('auth.confirmPassword')}
                   value={confirmPassword}
@@ -400,6 +443,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     appName: {
       fontSize: 42,
       fontWeight: '800',
+      fontFamily: theme.typography.fontFamily.bold,
       color: '#FFFFFF',
       letterSpacing: -1,
       lineHeight: 52,
@@ -439,11 +483,14 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       minHeight: '100%',
     },
     welcomeText: {
-      marginBottom: theme.spacing.lg,
+      marginBottom: theme.spacing.md,
       textAlign: 'center',
     },
     formCard: {
-      gap: theme.spacing.md,
+      gap: theme.spacing.xs,
+    },
+    inputWrapper: {
+      marginBottom: -8,
     },
     showPasswordButton: {
       position: 'absolute',
@@ -453,7 +500,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       padding: theme.spacing.sm,
     },
     resetButton: {
-      marginTop: theme.spacing.md,
+      marginTop: theme.spacing.sm,
       borderRadius: theme.borderRadius.full,
       overflow: 'hidden',
       shadowColor: theme.colors.primary,

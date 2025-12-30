@@ -1,13 +1,24 @@
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import 'react-native-gesture-handler'; // Must be imported first
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
 import { supabase } from "../src/config/supabase";
 import { useTranslation } from "../src/hooks/useTranslation";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/providers/AuthProvider";
 import { handleOAuthCallback } from "../src/services/supabase/authService";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
@@ -23,8 +34,6 @@ function RootLayoutNav() {
     const processedUrls = new Set<string>();
     
     const handleEmailConfirmation = async (url: string, urlObj: URL): Promise<boolean> => {
-      console.log('=== EMAIL CONFIRMATION HANDLER ===', { url: url.substring(0, 100) });
-      
       // Don't check for existing session first - we need to verify the OTP to create the session
       // The OTP verification will create the session if successful
 
@@ -47,14 +56,6 @@ function RootLayoutNav() {
                    urlObj.hash.match(/type=([^&]+)/)?.[1] || 
                    'signup';
       
-      console.log('Extracted tokens:', {
-        hasTokenHash: !!tokenHash,
-        tokenHashLength: tokenHash?.length,
-        type: type,
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken
-      });
-      
       // Helper function to verify OTP with retry logic
       const verifyOtpWithRetry = async (token: string, otpType: string, retries = 2): Promise<{ success: boolean; session: any }> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
@@ -63,11 +64,6 @@ function RootLayoutNav() {
             
             // For signup confirmations, ensure we use 'signup' type
             const finalOtpType = (otpType === 'signup' || type === 'signup') ? 'signup' : otpType;
-            
-            console.log(`Verifying OTP (attempt ${attempt + 1}/${retries + 1}):`, { 
-              type: finalOtpType, 
-              tokenLength: decodedToken.length 
-            });
             
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: decodedToken,
@@ -85,7 +81,6 @@ function RootLayoutNav() {
                 // Check if user is now authenticated (might have been confirmed by another process)
                 const { data: sessionData } = await supabase.auth.getSession();
                 if (sessionData?.session) {
-                  console.log('User already authenticated despite error, using existing session');
                   return { success: true, session: sessionData.session };
                 }
                 
@@ -96,7 +91,6 @@ function RootLayoutNav() {
               } else {
                 // For other errors, retry if we have attempts left
                 if (attempt < retries) {
-                  console.log(`Retrying OTP verification in ${1000 * (attempt + 1)}ms...`);
                   await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
                   continue;
                 }
@@ -105,17 +99,12 @@ function RootLayoutNav() {
             }
             
             if (data?.session) {
-              console.log('OTP verified successfully, session created:', {
-                userId: data.session.user?.id,
-                emailConfirmed: !!data.session.user?.email_confirmed_at
-              });
               return { success: true, session: data.session };
             } else {
               console.warn('OTP verification returned no session');
               // Check if session was created anyway
               const { data: sessionData } = await supabase.auth.getSession();
               if (sessionData?.session) {
-                console.log('Session found after verification, using it');
                 return { success: true, session: sessionData.session };
               }
             }
@@ -134,7 +123,6 @@ function RootLayoutNav() {
       // This happens when Supabase redirects with tokens in the URL hash
       if (accessToken && refreshToken) {
         try {
-          console.log('Setting session from direct tokens (email confirmation)');
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token: decodeURIComponent(accessToken),
             refresh_token: decodeURIComponent(refreshToken),
@@ -144,13 +132,9 @@ function RootLayoutNav() {
             console.error('Email confirmation session error:', sessionError);
             // Fall through to token hash verification
           } else if (sessionData?.session) {
-            console.log('Session set from tokens, verifying email confirmation');
-            
             // Verify that the user's email is confirmed
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-              console.log('User email confirmed:', !!user.email_confirmed_at);
-              
               // Refresh user profile to ensure everything is up to date
               await refreshUser();
               
@@ -174,19 +158,10 @@ function RootLayoutNav() {
         // For email confirmation, we should use 'signup' type to verify the account
         const otpType = type === 'recovery' ? 'recovery' : type === 'signup' ? 'signup' : 'email';
         
-        console.log('Verifying OTP for email confirmation:', { 
-          type: otpType, 
-          hasToken: !!tokenHash,
-          tokenLength: tokenHash.length,
-          urlType: type
-        });
-        
         const result = await verifyOtpWithRetry(tokenHash, otpType);
         
         if (result.success && result.session) {
           // OTP verified successfully - session is now set
-          console.log('OTP verified successfully, session created');
-          
           // Verify that the user's email is confirmed
           const { data: { user } } = await supabase.auth.getUser();
           if (user && !user.email_confirmed_at) {
@@ -205,7 +180,6 @@ function RootLayoutNav() {
           // Verify session is still valid before navigating
           const { data: sessionCheck } = await supabase.auth.getSession();
           if (sessionCheck?.session) {
-            console.log('Email confirmed and user signed in, navigating to home');
             router.replace('/(tabs)/log');
             return true;
           } else {
@@ -219,11 +193,9 @@ function RootLayoutNav() {
           }
         } else {
           // OTP verification failed - check if user is already authenticated
-          console.log('OTP verification failed, checking if user is already authenticated');
           const { data: finalSession } = await supabase.auth.getSession();
           if (finalSession?.session) {
             // User is already authenticated - might have been confirmed by another process
-            console.log('User already authenticated, refreshing and navigating');
             await refreshUser();
             router.replace('/(tabs)/log');
             return true;
@@ -270,7 +242,6 @@ function RootLayoutNav() {
 
       // Prevent duplicate processing
       if (processedUrls.has(url)) {
-        console.log('Skipping already processed URL:', url);
         return;
       }
       processedUrls.add(url);
@@ -281,7 +252,6 @@ function RootLayoutNav() {
         urlsArray.slice(0, urlsArray.length - 10).forEach(u => processedUrls.delete(u));
       }
 
-      console.log('Processing deep link:', url.substring(0, 100) + '...');
       // Set flag immediately to prevent catch-all route from showing not-found
       isProcessingDeepLinkRef.current = true;
       let handled = false;
@@ -293,7 +263,6 @@ function RootLayoutNav() {
       if ((url.includes('auth/confirm') || url.includes('/auth/confirm') || (url.includes('auth-callback') && (url.includes('type=signup') || url.includes('type=email')))) 
           && !url.includes('type=recovery') && !url.includes('reset-password')) {
         handled = true;
-        console.log('Matched email confirmation deep link pattern');
         try {
           const urlObj = new URL(url);
           const result = await handleEmailConfirmation(url, urlObj);
@@ -318,7 +287,6 @@ function RootLayoutNav() {
           const urlObj = new URL(url);
           // Check if it's an email confirmation (type=signup) or OAuth
           if (url.includes('type=signup') || url.includes('type=email')) {
-            console.log('Matched auth-callback with email confirmation');
             const result = await handleEmailConfirmation(url, urlObj);
             if (!result) {
               console.error('Email confirmation handler returned false for auth-callback');
@@ -326,7 +294,6 @@ function RootLayoutNav() {
             }
           } else {
             // OAuth callback
-            console.log('Processing OAuth callback');
             await handleOAuthCallback(url);
             await refreshUser();
             router.replace('/(tabs)/log');
@@ -341,7 +308,6 @@ function RootLayoutNav() {
       // OR: respondr://auth/confirm?token_hash=...&type=recovery
       else if (url.includes('reset-password') || (url.includes('type=recovery') && !url.includes('type=signup'))) {
         handled = true;
-        console.log('=== PASSWORD RESET DEEP LINK ===', { url: url.substring(0, 100) });
         
         try {
           const urlObj = new URL(url);
@@ -360,7 +326,6 @@ function RootLayoutNav() {
           
           // Method 1: Direct session tokens (preferred - fastest)
           if (accessToken && refreshToken) {
-            console.log('Setting session from direct tokens (password reset)');
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: decodeURIComponent(accessToken),
               refresh_token: decodeURIComponent(refreshToken),
@@ -374,7 +339,6 @@ function RootLayoutNav() {
               );
               router.replace('/login');
             } else if (sessionData?.session) {
-              console.log('Session created for password reset, navigating to reset screen');
               await refreshUser();
               router.replace({
                 pathname: '/reset-password',
@@ -387,8 +351,6 @@ function RootLayoutNav() {
           }
           // Method 2: Token hash verification (use verifyOtp to create session)
           else if (tokenHash) {
-            console.log('Verifying OTP for password reset:', { hasToken: !!tokenHash });
-            
             try {
               const decodedToken = decodeURIComponent(tokenHash);
               const { data, error } = await supabase.auth.verifyOtp({
@@ -404,7 +366,6 @@ function RootLayoutNav() {
                 );
                 router.replace('/login');
               } else if (data?.session) {
-                console.log('Password reset OTP verified, session created');
                 await refreshUser();
                 router.replace({
                   pathname: '/reset-password',
@@ -415,7 +376,6 @@ function RootLayoutNav() {
                 // Check if session was created anyway
                 const { data: sessionCheck } = await supabase.auth.getSession();
                 if (sessionCheck?.session) {
-                  console.log('Session found after verification');
                   await refreshUser();
                   router.replace({
                     pathname: '/reset-password',
@@ -463,7 +423,6 @@ function RootLayoutNav() {
       // Handle password changed confirmation (just redirect to login)
       else if (url.includes('password-changed') || url.includes('passwordChanged') || url.includes('password_changed')) {
         handled = true;
-        console.log('Password changed confirmation, redirecting to login');
         router.replace('/login');
       }
       // Check if this is an email confirmation link (generic catch-all)
@@ -472,7 +431,6 @@ function RootLayoutNav() {
         // Skip if it's a password reset (handled separately)
         if (!url.includes('type=recovery') && !url.includes('reset-password')) {
           handled = true;
-          console.log('Matched generic email confirmation pattern');
           try {
             const urlObj = new URL(url);
             const result = await handleEmailConfirmation(url, urlObj);
@@ -531,7 +489,6 @@ function RootLayoutNav() {
     // Don't run auth redirects if we're currently processing a deep link
     // This prevents interference with email confirmation processing
     if (isProcessingDeepLinkRef.current) {
-      console.log('Skipping auth redirects - deep link processing in progress');
       return;
     }
 
@@ -658,6 +615,23 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <AppProviders>
       <RootLayoutNav />

@@ -24,6 +24,8 @@ export interface CreateActivityInput {
   participants?: string[];
   unitId?: string;
   visibility: ActivityVisibility;
+  category?: string;
+  falseAlarm?: boolean;
   tags?: string[];
   images?: string[];
 }
@@ -81,6 +83,8 @@ export function useActivities(filter: ActivityFilter = 'all') {
         longitude: input.longitude,
         unitId: input.unitId,
         visibility: input.visibility,
+        category: input.category,
+        falseAlarm: input.falseAlarm,
         tags: input.tags,
         images: input.images,
       });
@@ -115,6 +119,8 @@ export function useActivities(filter: ActivityFilter = 'all') {
         latitude: updates.latitude,
         longitude: updates.longitude,
         visibility: updates.visibility,
+        category: updates.category,
+        falseAlarm: updates.falseAlarm,
         tags: updates.tags,
         images: updates.images,
       });

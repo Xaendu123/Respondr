@@ -84,12 +84,6 @@ export default function PrivacySettingsScreen() {
     
     setSaving(true);
     try {
-      console.log('Saving privacy settings:', { 
-        profileVisibility: visibilityToSave, 
-        marketingConsent: marketingToSave,
-        fromState: { profileVisibility, marketingConsent }
-      });
-      
       await updatePrivacySettings({
         profileVisibility: visibilityToSave,
         marketingConsent: marketingToSave,
@@ -113,7 +107,6 @@ export default function PrivacySettingsScreen() {
       if (verifyError) {
         console.error('Error verifying save:', verifyError);
       } else {
-        console.log('Verified saved values:', verifyData);
         // Ensure UI matches database
         if (verifyData.profile_visibility !== visibilityToSave) {
           console.warn('Profile visibility mismatch! Expected:', visibilityToSave, 'Got:', verifyData.profile_visibility);
@@ -124,7 +117,7 @@ export default function PrivacySettingsScreen() {
       }
 
       if (showSuccess) {
-        Alert.alert(t('common.success'), t('privacy.settingsSaved'));
+      Alert.alert(t('common.success'), t('privacy.settingsSaved'));
       }
     } catch (error) {
       console.error('Error saving privacy settings:', error);
@@ -337,7 +330,7 @@ export default function PrivacySettingsScreen() {
             <Text variant="headingSmall">{t('privacy.profileVisibility')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <View style={styles.visibilityInfo}>
               <View style={[styles.visibilityBadge, { backgroundColor: `${getVisibilityInfo(profileVisibility).color}15` }]}>
                 <Ionicons 
@@ -351,15 +344,15 @@ export default function PrivacySettingsScreen() {
                   {profileVisibility === 'public' && t('privacy.public')}
                   {profileVisibility === 'unit' && t('privacy.unit')}
                   {profileVisibility === 'private' && t('privacy.private')}
-                </Text>
+          </Text>
                 <Text variant="caption" color="textSecondary">
                   {getVisibilityInfo(profileVisibility).description}
                 </Text>
               </View>
-            </View>
-            
-            <View style={styles.divider} />
-            
+          </View>
+
+          <View style={styles.divider} />
+
             <View style={styles.visibilityOptions}>
               {[
                 { value: 'public' as VisibilityOption, label: t('privacy.public'), icon: 'earth', color: theme.colors.success },
@@ -396,18 +389,18 @@ export default function PrivacySettingsScreen() {
                       }}
                     >
                       {option.label}
-                    </Text>
+                </Text>
                     {profileVisibility === option.value && (
                       <View style={[styles.checkBadge, { backgroundColor: option.color }]}>
                         <Ionicons name="checkmark" size={12} color="#FFFFFF" />
                       </View>
                     )}
-                  </View>
+              </View>
                 </TouchableOpacity>
               ))}
             </View>
           </Card>
-        </View>
+          </View>
 
         {/* Marketing Consent Section */}
         <View style={styles.sectionContainer}>
@@ -416,8 +409,8 @@ export default function PrivacySettingsScreen() {
             <Text variant="headingSmall">{t('privacy.dataSharingSettings')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
-            <View style={styles.switchRow}>
+          <Card style={styles.section} glass>
+          <View style={styles.switchRow}>
               <View style={styles.switchContent}>
                 <View style={[styles.switchIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
                   <Ionicons name="mail" size={20} color={theme.colors.primary} />
@@ -426,20 +419,20 @@ export default function PrivacySettingsScreen() {
                   <Text variant="body" style={{ fontWeight: '600', marginBottom: theme.spacing.xs }}>
                     {t('privacy.marketingConsent')}
                   </Text>
-                  <Text variant="caption" color="textSecondary">
-                    {t('privacy.marketingConsentDescription')}
-                  </Text>
-                </View>
+                <Text variant="caption" color="textSecondary">
+                  {t('privacy.marketingConsentDescription')}
+                </Text>
               </View>
-              <Switch
-                value={marketingConsent}
+            </View>
+            <Switch
+              value={marketingConsent}
                 onValueChange={handleMarketingConsentChange}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                 thumbColor={marketingConsent ? '#FFFFFF' : theme.colors.surface}
                 ios_backgroundColor={theme.colors.border}
-              />
-            </View>
-          </Card>
+            />
+          </View>
+        </Card>
         </View>
 
         {/* Save Status Indicator */}
@@ -459,20 +452,20 @@ export default function PrivacySettingsScreen() {
             <Text variant="headingSmall">{t('privacy.yourDataRights')}</Text>
           </View>
           
-          <Card style={styles.section} glass elevated>
+          <Card style={styles.section} glass>
             <View style={styles.dataRightsInfo}>
               <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
               <Text variant="caption" color="textSecondary" style={{ flex: 1, marginLeft: theme.spacing.sm }}>
-                {t('privacy.dataRightsDescription')}
-              </Text>
+            {t('privacy.dataRightsDescription')}
+          </Text>
             </View>
             
             <View style={styles.divider} />
-            
+
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={handleExportData}
-              disabled={exporting}
+            onPress={handleExportData}
+            disabled={exporting}
               activeOpacity={0.7}
             >
               <View style={[styles.actionIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
@@ -480,8 +473,8 @@ export default function PrivacySettingsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text variant="body" style={{ fontWeight: '600' }}>
-                  {exporting ? t('privacy.exporting') : t('privacy.downloadMyData')}
-                </Text>
+              {exporting ? t('privacy.exporting') : t('privacy.downloadMyData')}
+            </Text>
                 <Text variant="caption" color="textSecondary">
                   {t('privacy.exportDescription')}
                 </Text>
@@ -504,7 +497,7 @@ export default function PrivacySettingsScreen() {
             </Text>
           </View>
           
-          <Card style={[styles.section, styles.dangerCard]} glass elevated>
+          <Card style={[styles.section, styles.dangerCard]} glass>
             <View style={styles.dangerContent}>
               <View style={[styles.dangerIcon, { backgroundColor: `${theme.colors.error}15` }]}>
                 <Ionicons name="trash-outline" size={24} color={theme.colors.error} />
@@ -521,8 +514,8 @@ export default function PrivacySettingsScreen() {
             
             <TouchableOpacity
               style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
-              onPress={handleDeleteAccount}
-              disabled={deleting}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
               activeOpacity={0.7}
             >
               {deleting ? (
@@ -532,11 +525,11 @@ export default function PrivacySettingsScreen() {
                   <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
                   <Text variant="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: theme.spacing.xs }}>
                     {t('privacy.deleteAccount')}
-                  </Text>
+            </Text>
                 </>
               )}
             </TouchableOpacity>
-          </Card>
+        </Card>
         </View>
 
         {/* GDPR Compliance Footer */}
@@ -553,18 +546,18 @@ export default function PrivacySettingsScreen() {
 
 function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    header: {
+  container: {
+    flex: 1,
+  },
+  header: {
       paddingTop: 60, // Extra padding for status bar + spacing
       paddingBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.lg,
-    },
-    content: {
-      flex: 1,
-    },
-    contentContainer: {
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
       padding: theme.spacing.lg,
       paddingBottom: theme.spacing.xxl,
     },
@@ -577,15 +570,15 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.md,
       paddingHorizontal: theme.spacing.xs,
-    },
-    section: {
+  },
+  section: {
       padding: theme.spacing.lg,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
     visibilityInfo: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -604,21 +597,21 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     },
     visibilityInfoText: {
       flex: 1,
-    },
-    visibilityOptions: {
-      flexDirection: 'row',
+  },
+  visibilityOptions: {
+    flexDirection: 'row',
       gap: theme.spacing.sm,
-    },
-    visibilityOption: {
-      flex: 1,
+  },
+  visibilityOption: {
+    flex: 1,
     },
     visibilityOptionContent: {
-      alignItems: 'center',
+    alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
       borderRadius: theme.borderRadius.md,
-      borderWidth: 1,
+    borderWidth: 1,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surface,
       position: 'relative',
@@ -633,21 +626,21 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    divider: {
-      height: 1,
+  },
+  divider: {
+    height: 1,
       backgroundColor: theme.colors.border,
       marginVertical: theme.spacing.md,
-    },
-    switchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
     switchContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
       marginRight: theme.spacing.md,
     },
     switchIcon: {
@@ -727,7 +720,7 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.lg,
       marginTop: theme.spacing.md,
-    },
-  });
+  },
+});
 }
 
