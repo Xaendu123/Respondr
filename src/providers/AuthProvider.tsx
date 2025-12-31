@@ -168,7 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await supabaseAuth.signUp({
         email: request.email,
         password: request.password,
-        displayName: request.displayName,
         firstName: request.firstName,
         lastName: request.lastName,
       });

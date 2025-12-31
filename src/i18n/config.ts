@@ -96,12 +96,71 @@ initI18n().catch((error) => {
 
 // Helper to change language and persist preference
 export async function changeLanguage(language: string): Promise<void> {
+  // Change language immediately - this triggers UI re-render
   await i18n.changeLanguage(language);
-  try {
-    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-  } catch (error) {
-    console.warn('Failed to save language preference:', error);
-  }
+  
+  // Save to local storage (non-blocking)
+  AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language).catch((error) => {
+    console.warn('Failed to save language preference to storage:', error);
+  });
+  
+  // Update Supabase in the background (non-blocking, don't await)
+  // This ensures the UI updates immediately while the database sync happens async
+  (async () => {
+    try {
+      const { supabase } = await import('../config/supabase');
+      const { data: { user }, error: getUserError } = await supabase.auth.getUser();
+      
+      if (getUserError) {
+        console.warn('Failed to get user for language update:', getUserError);
+        return;
+      }
+      
+      if (!user || !user.id) {
+        // User not authenticated, skip Supabase update
+        return;
+      }
+      
+      // Update profile language column - this will trigger sync to auth metadata
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          language: language,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select('id, language, updated_at')
+        .single();
+      
+      if (profileError) {
+        console.error('Failed to update profile language:', {
+          error: profileError,
+          message: profileError.message,
+          code: profileError.code,
+          details: profileError.details,
+          hint: profileError.hint,
+          userId: user.id,
+        });
+        // Fallback: try to update auth metadata directly
+        try {
+          const currentMetadata = user.user_metadata || {};
+          await supabase.auth.updateUser({
+            data: {
+              ...currentMetadata,
+              language: language,
+            },
+          });
+        } catch (authError: any) {
+          console.error('Failed to update auth metadata as fallback:', authError);
+        }
+      } else if (profileData) {
+        // Success - trigger will automatically sync to auth metadata
+      }
+    } catch (authError) {
+      // Log error but don't throw - language preference is still saved locally
+      console.error('Failed to update language preference in Supabase:', authError);
+    }
+  })();
 }
 
 export default i18n;

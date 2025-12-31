@@ -53,7 +53,7 @@ export interface BrandConfig {
 // Default brand configuration for Respondr
 export const defaultBrandConfig: BrandConfig = {
   appName: 'Respondr',
-  appTagline: 'Für die Helden im Einsatz',
+  appTagline: 'Connecting heroes',
   // Brand logo assets
   logo: wordmarkDark, // Default logo (dark version)
   logoLight: wordmarkLight, // Light version for dark backgrounds

@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, ScrollView, StatusBar, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, ScrollView, StatusBar, StyleSheet, Switch, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Autocomplete, Avatar, Button, Card, Input, Text } from '../components/ui';
 import { supabase } from '../config/supabase';
@@ -19,7 +19,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { updateProfile } from '../services/supabase/authService';
 import { getAllOrganizations, searchOrganizations } from '../services/supabase/organizationsService';
-import { hapticSuccess } from '../utils/haptics';
+import { hapticSelect, hapticSuccess } from '../utils/haptics';
 
 export function EditProfileScreen() {
   const { theme } = useTheme();
@@ -32,6 +32,7 @@ export function EditProfileScreen() {
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [showFullName, setShowFullName] = useState(user?.showFullName !== undefined ? user.showFullName : true);
   const [organization, setOrganization] = useState(user?.organization || '');
   const [rank, setRank] = useState(user?.rank || '');
   const [location, setLocation] = useState(user?.location || '');
@@ -51,6 +52,7 @@ export function EditProfileScreen() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     displayName: user?.displayName || '',
+    showFullName: user?.showFullName !== undefined ? user.showFullName : true,
     organization: user?.organization || '',
     rank: user?.rank || '',
     location: user?.location || '',
@@ -65,6 +67,7 @@ export function EditProfileScreen() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         displayName: user.displayName,
+        showFullName: user.showFullName !== undefined ? user.showFullName : true,
         organization: user.organization || '',
         rank: user.rank || '',
         location: user.location || '',
@@ -75,6 +78,7 @@ export function EditProfileScreen() {
       setFirstName(original.firstName);
       setLastName(original.lastName);
       setDisplayName(original.displayName);
+      setShowFullName(original.showFullName);
       setOrganization(original.organization);
       setRank(original.rank);
       setLocation(original.location);
@@ -85,12 +89,35 @@ export function EditProfileScreen() {
     }
   }, [user]);
   
+  // Update displayName preview when showFullName, firstName, or lastName changes
+  useEffect(() => {
+    if (firstName && lastName) {
+      if (showFullName) {
+        // Full name: "FirstName LastName"
+        setDisplayName(`${firstName.trim()} ${lastName.trim()}`.trim());
+      } else {
+        // Abbreviated: "FirstName LastInitial."
+        const lastInitial = lastName.trim().charAt(0).toUpperCase();
+        setDisplayName(`${firstName.trim()} ${lastInitial}.`.trim());
+      }
+    } else if (firstName) {
+      setDisplayName(firstName.trim());
+    } else if (lastName) {
+      if (showFullName) {
+        setDisplayName(lastName.trim());
+      } else {
+        setDisplayName(`${lastName.trim().charAt(0).toUpperCase()}.`);
+      }
+    }
+  }, [firstName, lastName, showFullName]);
+
   // Check for changes
   useEffect(() => {
     const current = {
       firstName,
       lastName,
       displayName,
+      showFullName,
       organization,
       rank,
       location,
@@ -101,7 +128,7 @@ export function EditProfileScreen() {
     const hasFormChanges = 
       current.firstName !== originalValuesRef.current.firstName ||
       current.lastName !== originalValuesRef.current.lastName ||
-      current.displayName !== originalValuesRef.current.displayName ||
+      current.showFullName !== originalValuesRef.current.showFullName ||
       current.organization !== originalValuesRef.current.organization ||
       current.rank !== originalValuesRef.current.rank ||
       current.location !== originalValuesRef.current.location ||
@@ -109,7 +136,7 @@ export function EditProfileScreen() {
       current.avatarUrl !== originalValuesRef.current.avatarUrl;
     
     setHasChanges(hasFormChanges);
-  }, [firstName, lastName, displayName, organization, rank, location, bio, avatarUrl]);
+  }, [firstName, lastName, displayName, showFullName, organization, rank, location, bio, avatarUrl]);
 
   // Load all organizations when field is focused
   const handleOrganizationFocus = async () => {
@@ -395,12 +422,6 @@ export function EditProfileScreen() {
   const handleSave = async () => {
     if (!user || !hasChanges) return;
     
-    // Validate display name
-    if (!displayName || !displayName.trim()) {
-      Alert.alert(t('errors.generic'), t('profile.displayNameRequired'));
-      return;
-    }
-    
     // Dismiss keyboard
     Keyboard.dismiss();
     
@@ -418,7 +439,7 @@ export function EditProfileScreen() {
       await updateProfile({
         firstName,
         lastName,
-        displayName,
+        showFullName,
         organization,
         rank,
         location,
@@ -431,7 +452,8 @@ export function EditProfileScreen() {
       originalValuesRef.current = {
         firstName,
         lastName,
-        displayName,
+        displayName: user.displayName, // Keep current displayName (will be updated by trigger)
+        showFullName,
         organization,
         rank,
         location,
@@ -585,12 +607,48 @@ export function EditProfileScreen() {
             
             <View style={[styles.divider, { marginVertical: theme.spacing.md }]} />
             
-            <Input
-              label={t('profile.displayName')}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder={t('profile.displayNamePlaceholder')}
-            />
+            {/* Display Name Setting - Toggle and Preview */}
+            <View style={styles.displayNameSetting}>
+              <View style={styles.displayNameSettingHeader}>
+                <Text variant="label" color="textSecondary" style={styles.displayNameSettingLabel}>
+                  {t('profile.displayName')}
+                </Text>
+              </View>
+              
+              {/* Show Full Name Toggle */}
+              <View style={styles.switchRow}>
+                <View style={styles.switchLabel}>
+                  <View style={styles.switchTextContainer}>
+                    <Text variant="body">{t('profile.showFullName')}</Text>
+                    <Text variant="caption" color="textSecondary" style={styles.switchHint}>
+                      {t('profile.showFullNameHint')}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={showFullName}
+                  onValueChange={(value) => {
+                    hapticSelect();
+                    setShowFullName(value);
+                  }}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={showFullName ? theme.colors.onPrimary : theme.colors.surface}
+                  ios_backgroundColor={theme.colors.border}
+                />
+              </View>
+              
+              {/* Display Name Preview */}
+              <View style={styles.displayNamePreview}>
+                <Text variant="caption" color="textTertiary" style={styles.previewLabel}>
+                  {t('profile.displayNamePreview')}
+                </Text>
+                <View style={styles.previewValue}>
+                  <Text variant="body" style={styles.previewText}>
+                    {displayName || t('profile.displayNamePlaceholder')}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </Card>
         </View>
         
@@ -922,6 +980,55 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     },
     fieldHintText: {
       marginTop: theme.spacing.xs,
+    },
+    displayNameSetting: {
+      marginTop: theme.spacing.sm,
+    },
+    displayNameSettingHeader: {
+      marginBottom: theme.spacing.sm,
+    },
+    displayNameSettingLabel: {
+      fontSize: theme.typography.fontSize.sm,
+      fontWeight: '600',
+    },
+    displayNamePreview: {
+      marginTop: theme.spacing.md,
+      padding: theme.spacing.md,
+      backgroundColor: theme.colors.backgroundSecondary,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    previewLabel: {
+      marginBottom: theme.spacing.xs,
+    },
+    previewValue: {
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.sm,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    previewText: {
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.fontSize.base,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xs,
+    },
+    switchLabel: {
+      flex: 1,
+      alignItems: 'flex-start',
+    },
+    switchTextContainer: {
+      flex: 1,
+    },
+    switchHint: {
+      marginTop: theme.spacing.xxs,
     },
     saveIndicator: {
       flexDirection: 'row',

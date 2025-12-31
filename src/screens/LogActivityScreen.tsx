@@ -64,11 +64,6 @@ export function LogActivityScreen() {
     const activityData = parseActivityDataFromParams();
     // Treat empty string as 'new' mode (when params are cleared)
     const newFormMode = (params.formMode === 'edit' && activityData) ? 'edit' : 'new';
-    console.log('🔄 Updating formMode and selectedActivity from params:', { 
-      paramsFormMode: params.formMode, 
-      activityDataExists: !!activityData,
-      newFormMode
-    });
     setFormMode(newFormMode);
     // Always create a new object reference to ensure React sees it as changed
     // This allows the load effect to run even when clicking edit on the same activity twice
@@ -81,91 +76,6 @@ export function LogActivityScreen() {
   // Use 'all' when creating new activities
   const { createActivity, updateActivity, loading, activities, refresh } = useActivities(formMode === 'edit' ? 'mine' : 'all');
   const insets = useSafeAreaInsets();
-  
-  // Reset form and form mode
-  const resetForm = useCallback(() => {
-    console.log('🔄 Starting form reset (0%)');
-    
-    // Reset all form fields
-    setTitle('');
-    console.log('✅ Reset title (7%)');
-    
-    setType('exercise');
-    console.log('✅ Reset type (14%)');
-    
-    setFalseAlarm(false);
-    console.log('✅ Reset falseAlarm (21%)');
-    
-    setCategory('');
-    console.log('✅ Reset category (29%)');
-    
-    setDate(new Date());
-    console.log('✅ Reset date (36%)');
-    
-    setDurationValue('');
-    console.log('✅ Reset durationValue (43%)');
-    
-    setDurationUnit('hours');
-    console.log('✅ Reset durationUnit (50%)');
-    
-    setReport('');
-    console.log('✅ Reset report (57%)');
-    
-    setTown('');
-    console.log('✅ Reset town (64%)');
-    
-    setStreet('');
-    console.log('✅ Reset street (71%)');
-    
-    setVisibility('public');
-    console.log('✅ Reset visibility (79%)');
-    
-    setTitleError('');
-    console.log('✅ Reset titleError (86%)');
-    
-    setDurationError('');
-    console.log('✅ Reset durationError (93%)');
-    
-    setExpandedSections({
-      type: true,
-      basicInfo: true,
-      timeDuration: false,
-      location: false,
-      report: false,
-      visibility: false,
-    });
-    console.log('✅ Reset expandedSections (93%)');
-    
-    // Reset form mode and selectedActivity (same pattern as formMode)
-    setFormMode('new');
-    setSelectedActivity(null);
-    console.log('✅ Reset formMode to "new" and selectedActivity to null (100%)');
-    
-    // Clear route params
-    router.setParams({
-      activityId: '',
-      formMode: '',
-      activityData: '',
-    });
-    console.log('✅ Cleared route params (activityId, formMode, activityData)');
-    console.log('✅ Form reset complete - all fields, mode, and selectedActivity reset');
-  }, [router, setFormMode, setSelectedActivity]);
-  
-  // Reset form when leaving the screen
-  useFocusEffect(
-    useCallback(() => {
-      // Cleanup function runs when screen loses focus
-      return () => {
-        resetForm();
-      };
-    }, [resetForm])
-  );
-  
-  // TEMPORARY DEBUG - Remove after fixing
-  console.log('=== RENDER ===');
-  console.log('formMode:', formMode);
-  console.log('selectedActivity:', selectedActivity?.title);
-  console.log('==============');
   
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ActivityType>('exercise');
@@ -194,6 +104,62 @@ export function LogActivityScreen() {
     report: false,
     visibility: false,
   });
+  
+  // Reset form and form mode
+  const resetForm = useCallback(() => {
+    // Reset all form fields
+    setTitle('');
+    setType('exercise');
+    setFalseAlarm(false);
+    setCategory('');
+    setDate(new Date());
+    setDurationValue('');
+    setDurationUnit('hours');
+    setReport('');
+    setTown('');
+    setStreet('');
+    setVisibility('public');
+    setTitleError('');
+    setDurationError('');
+    
+    setExpandedSections({
+      type: true,
+      basicInfo: true,
+      timeDuration: false,
+      location: false,
+      report: false,
+      visibility: false,
+    });
+    
+    // Reset form mode and selectedActivity (same pattern as formMode)
+    setFormMode('new');
+    setSelectedActivity(null);
+    
+    // Clear route params - wrap in try-catch to handle navigation errors
+    try {
+      router.setParams({
+        activityId: '',
+        formMode: '',
+        activityData: '',
+      });
+    } catch (error) {
+      // Router might not be ready yet, ignore the error
+      // The params will be cleared on next navigation anyway
+    }
+  }, [router]);
+  
+  // Reset form when leaving the screen
+  useFocusEffect(
+    useCallback(() => {
+      // Cleanup function runs when screen loses focus
+      return () => {
+        // Use setTimeout to ensure router is ready
+        setTimeout(() => {
+          resetForm();
+        }, 0);
+      };
+    }, [resetForm])
+  );
   
   const toggleSection = useCallback((sectionKey: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -282,23 +248,15 @@ export function LogActivityScreen() {
   
   // Load activity data when entering edit mode
   useEffect(() => {
-    console.log('📂 Load effect triggered');
-    console.log('formMode:', formMode);
-    console.log('activityId:', activityId);
-    
     // Exit early if not in edit mode
     if (formMode !== 'edit') {
-      console.log('❌ Not in edit mode');
       return;
     }
     
     // Use selectedActivity directly - it's state just like formMode
     if (!selectedActivity) {
-      console.log('⚠️ Waiting for activity data to load...');
       return;
     }
-    
-    console.log('📥 Loading activity data:', activityId);
     
     // Load the activity data from selectedActivity
     setTitle(selectedActivity.title);
@@ -326,8 +284,6 @@ export function LogActivityScreen() {
     setVisibility(selectedActivity.visibility);
     setCategory(selectedActivity.category?.trim() || '');
     setFalseAlarm(selectedActivity.falseAlarm || false);
-    
-    console.log('✅ Activity loaded successfully');
   }, [
     formMode,
     selectedActivity, // Use state variable just like formMode
@@ -1008,24 +964,8 @@ export function LogActivityScreen() {
             </View>
             </View>
 
-            {/* Reset and Save Buttons */}
+            {/* Save Button */}
             <View style={styles.saveButtonContainer} pointerEvents="box-none">
-              {/* Reset Button */}
-              <Button
-                variant="secondary"
-                onPress={resetForm}
-                style={styles.resetButton}
-                disabled={loading}
-              >
-                <View style={styles.buttonContent}>
-                  <Ionicons name="refresh-outline" size={20} color={theme.colors.textPrimary} />
-                  <Text variant="body" style={[styles.buttonText, { color: theme.colors.textPrimary, marginLeft: theme.spacing.sm }]}>
-                    {t('common.reset')}
-                  </Text>
-                </View>
-              </Button>
-              
-              {/* Save Button */}
               <Button
                 variant="primary"
                 onPress={handleSave}
@@ -1303,12 +1243,6 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     saveButtonContainer: {
       marginTop: theme.spacing.xxl, // Increased for better separation from last section
       marginBottom: theme.spacing.md,
-      gap: theme.spacing.sm,
-    },
-    resetButton: {
-      paddingVertical: theme.spacing.md,
-      borderRadius: theme.borderRadius.lg,
-      minHeight: 52, // Standard button height for better touch target
     },
     saveButton: {
       paddingVertical: theme.spacing.md,

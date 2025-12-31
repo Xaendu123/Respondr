@@ -5,13 +5,13 @@
  */
 
 import { supabase } from '../../config/supabase';
+import i18n from '../../i18n/config';
 import { UserProfile } from '../../types';
 import { storeUser } from '../auth/authStorage';
 
 export interface SignUpData {
   email: string;
   password: string;
-  displayName: string;
   firstName?: string;
   lastName?: string;
 }
@@ -42,6 +42,9 @@ function extractDisplayNameFromEmail(email: string | undefined | null): string {
  */
 export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | null; email: string; needsConfirmation: boolean }> => {
   
+  // Get current language preference from i18n (defaults to 'en' if not set)
+  const currentLanguage = i18n.language || 'en';
+  
   // 1. Create auth user
   // Supabase will return an error if the email already exists
   let { data: authData, error: authError } = await supabase.auth.signUp({
@@ -49,9 +52,9 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
     password: data.password,
     options: {
       data: {
-        display_name: data.displayName,
         first_name: data.firstName,
         last_name: data.lastName,
+        language: currentLanguage, // Add language preference for email templates
       },
       emailRedirectTo: 'respondr://auth/confirm',
     },
@@ -214,7 +217,6 @@ export const signUp = async (data: SignUpData): Promise<{ user: UserProfile | nu
             id: authData.user.id,
             email: authData.user.email || data.email,
             display_name: authData.user.user_metadata?.display_name || 
-                          data.displayName ||
                           extractDisplayNameFromEmail(authData.user.email || data.email),
             first_name: authData.user.user_metadata?.first_name || data.firstName,
             last_name: authData.user.user_metadata?.last_name || data.lastName,
@@ -559,6 +561,7 @@ export const updateProfile = async (updates: Partial<UserProfile>): Promise<User
     if (updates.displayName !== undefined) updateData.display_name = updates.displayName;
     if (updates.firstName !== undefined) updateData.first_name = updates.firstName;
     if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    if (updates.showFullName !== undefined) updateData.show_full_name = updates.showFullName;
     if (updates.bio !== undefined) updateData.bio = updates.bio;
     if (updates.organization !== undefined) updateData.organization = updates.organization;
     if (updates.rank !== undefined) updateData.rank = updates.rank;
@@ -575,6 +578,18 @@ export const updateProfile = async (updates: Partial<UserProfile>): Promise<User
     .single();
 
   if (error) throw error;
+  
+  // Update auth metadata if language preference changed
+  // This ensures email templates use the correct language
+  if (updates.preferences?.language !== undefined) {
+    const currentMetadata = user.user_metadata || {};
+    await supabase.auth.updateUser({
+      data: {
+        ...currentMetadata,
+        language: updates.preferences.language,
+      },
+    });
+  }
 
   return mapProfileToUserProfile(profile);
 };
@@ -589,6 +604,7 @@ const mapProfileToUserProfile = (profile: any): UserProfile => {
     displayName: profile.display_name,
     firstName: profile.first_name || undefined,
     lastName: profile.last_name || undefined,
+    showFullName: profile.show_full_name !== undefined ? profile.show_full_name : true, // Default to true if not set
     avatar: profile.avatar || undefined,
     bio: profile.bio || undefined,
     organization: profile.organization || undefined,
@@ -820,6 +836,30 @@ export async function updatePrivacySettings(settings: {
  * @param email - User's email address
  */
 export const resetPassword = async (email: string): Promise<void> => {
+  // Get current language preference from i18n (defaults to 'en' if not set)
+  const currentLanguage = i18n.language || 'en';
+  
+  // Try to update user metadata with current language if user is logged in
+  // This ensures the email uses the correct language
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const currentMetadata = user.user_metadata || {};
+      // Only update if language is different or missing
+      if (currentMetadata.language !== currentLanguage) {
+        await supabase.auth.updateUser({
+          data: {
+            ...currentMetadata,
+            language: currentLanguage,
+          },
+        });
+      }
+    }
+  } catch (error) {
+    // User might not be logged in - that's okay, Supabase will use existing metadata
+    // Silently continue - the email will use whatever language is in the user's metadata
+  }
+  
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
     redirectTo: 'respondr://auth/confirm',
   });
@@ -834,6 +874,30 @@ export const resetPassword = async (email: string): Promise<void> => {
  * @param email - User's email address
  */
 export const resendConfirmationEmail = async (email: string): Promise<void> => {
+  // Get current language preference from i18n (defaults to 'en' if not set)
+  const currentLanguage = i18n.language || 'en';
+  
+  // Try to update user metadata with current language if user is logged in
+  // This ensures the email uses the correct language
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const currentMetadata = user.user_metadata || {};
+      // Only update if language is different or missing
+      if (currentMetadata.language !== currentLanguage) {
+        await supabase.auth.updateUser({
+          data: {
+            ...currentMetadata,
+            language: currentLanguage,
+          },
+        });
+      }
+    }
+  } catch (error) {
+    // User might not be logged in - that's okay, Supabase will use existing metadata
+    // Silently continue - the email will use whatever language is in the user's metadata
+  }
+  
   // Don't specify emailRedirectTo - let Supabase use the default configured in dashboard
   // This ensures it matches what was used during signup
   const { data, error } = await supabase.auth.resend({

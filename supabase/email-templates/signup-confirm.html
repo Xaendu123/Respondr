@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{if eq .Data.language "de" }}de{{ else }}en{{end}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm Your Email - Respondr</title>
+  <title>{{if eq .Data.language "de" }}E-Mail bestätigen{{ else }}Confirm Your Email{{end}} - Respondr</title>
   <style>
     * {
       margin: 0;
@@ -167,11 +167,51 @@
         <div class="icon-circle">🚑</div>
       </div>
       <div class="app-name">Respondr</div>
-      <div class="tagline">Connecting heroes</div>
+      <div class="tagline">{{if eq .Data.language "de" }}Connecting heroes{{ else }}Connecting heroes{{end}}</div>
     </div>
 
     <!-- Main Content -->
     <div class="content">
+      {{if eq .Data.language "de" }}
+      <div class="greeting">E-Mail bestätigen</div>
+      
+      <div class="message">
+        Hallo,
+        <br><br>
+        Willkommen bei Respondr! Vielen Dank für deine Anmeldung. Um deine Registrierung abzuschließen und dein Konto zu aktivieren, bestätige bitte deine E-Mail-Adresse, indem du auf die Schaltfläche unten klickst.
+        <br><br>
+        Sobald du deine E-Mail bestätigt hast, kannst du dich anmelden und Respondr nutzen, um deine Aktivitäten zu verfolgen und dich mit deiner Einheit zu verbinden.
+      </div>
+
+      <!-- Confirm Button -->
+      <div class="button-container">
+        <a href="respondr://auth/confirm?token_hash={{ .TokenHash }}&type=signup" class="confirm-button">
+          E-Mail bestätigen
+        </a>
+      </div>
+
+      <!-- Link Fallback -->
+      <div class="link-fallback">
+        <div class="link-fallback-text">
+          Wenn die Schaltfläche nicht funktioniert, kopiere diesen Link und füge ihn in deinen Browser ein. Dies öffnet die Respondr-App zur Bestätigung deiner E-Mail:
+        </div>
+        <div class="link-fallback-url">respondr://auth/confirm?token_hash={{ .TokenHash }}&type=signup</div>
+        <div style="margin-top: 12px; font-size: 13px; color: #6b7280;">
+          <strong>Hinweis:</strong> Wenn du auf diesen Link klickst, öffnet sich die Respondr-App auf deinem Gerät. Wenn die App nicht öffnet, stelle sicher, dass die Respondr-App installiert ist.
+        </div>
+      </div>
+
+      <!-- Security Note -->
+      <div class="security-note">
+        <div class="security-note-text">
+          <strong>Sicherheitstipp:</strong> Dieser Bestätigungslink läuft aus Sicherheitsgründen nach 24 Stunden ab. Wenn du einen neuen Bestätigungslink benötigst, kannst du einen vom Anmeldebildschirm anfordern.
+        </div>
+      </div>
+
+      <div class="expiry-note">
+        Dieser Link läuft in 24 Stunden ab.
+      </div>
+      {{ else }}
       <div class="greeting">Confirm Your Email</div>
       
       <div class="message">
@@ -210,20 +250,29 @@
       <div class="expiry-note">
         This link expires in 24 hours.
       </div>
+      {{end}}
     </div>
 
     <!-- Footer -->
     <div class="footer">
       <div class="footer-text">
+        {{if eq .Data.language "de" }}
+        Diese E-Mail wurde von Respondr gesendet
+        <br>
+        Für Support kontaktiere uns unter <a href="mailto:info@respondr.ch" class="footer-link">info@respondr.ch</a>
+        <br><br>
+        <a href="https://respondr.ch" class="footer-link">Besuche unsere Website</a> | 
+        <a href="https://respondr.ch/privacy" class="footer-link">Datenschutzerklärung</a>
+        {{ else }}
         This email was sent by Respondr
         <br>
         For support, contact us at <a href="mailto:info@respondr.ch" class="footer-link">info@respondr.ch</a>
         <br><br>
         <a href="https://respondr.ch" class="footer-link">Visit our website</a> | 
         <a href="https://respondr.ch/privacy" class="footer-link">Privacy Policy</a>
+        {{end}}
       </div>
     </div>
   </div>
 </body>
 </html>
-

@@ -12,7 +12,7 @@ All recommended configuration changes have been implemented.
   - Privacy Policy: `https://respondr.ch/privacy`
   - Terms of Service: `https://respondr.ch/terms`
   - Website: `https://respondr.ch`
-- ✅ Updated app tagline to: `"Für die Helden im Einsatz"`
+- ✅ Updated app tagline to: `"Connecting heroes"`
 
 ### 2. **App.json** (`app.json`)
 - ✅ Added `description` field

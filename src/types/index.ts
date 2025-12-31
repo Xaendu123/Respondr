@@ -68,6 +68,7 @@ export interface UserProfile {
   displayName: string;
   firstName?: string;
   lastName?: string;
+  showFullName?: boolean; // If true, displayName shows full name. If false, shows abbreviated (FirstName LastInitial.)
   bio?: string;
   avatar?: string;
   unitId?: string;

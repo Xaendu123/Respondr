@@ -14,12 +14,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Text } from '../components/ui';
 import { ThemeMode } from '../config/theme';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../providers/AuthProvider';
 import { useBrand } from '../providers/BrandProvider';
 import { useTheme } from '../providers/ThemeProvider';
 
 export function SettingsScreen() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, currentLanguage, changeLanguage } = useTranslation();
+  const { refreshUser } = useAuth();
   const brand = useBrand();
   const router = useRouter();
   
@@ -31,6 +33,13 @@ export function SettingsScreen() {
   
   const handleLanguageChange = async (lang: string) => {
     await changeLanguage(lang);
+    // Refresh user profile to get updated language preference
+    try {
+      await refreshUser();
+    } catch (error) {
+      // Silently fail - profile refresh is not critical
+      console.warn('Failed to refresh user after language change:', error);
+    }
   };
   
   const handleLogout = () => {

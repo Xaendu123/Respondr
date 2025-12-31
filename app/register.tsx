@@ -102,13 +102,9 @@ export default function RegisterScreen() {
     
     setIsRegistering(true);
     try {
-      // Construct displayName from firstName and lastName
-      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      
       const confirmationEmail = await register({ 
         email: email.trim(), 
         password, 
-        displayName,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       });
