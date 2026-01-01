@@ -124,10 +124,6 @@
         "./plugins/withLocalizedNativePermissions",
         null
       ],
-      [
-        "./plugins/withDevelopmentTeam",
-        null
-      ],
       "@react-native-community/datetimepicker"
     ],
     "jsEngine": "hermes",
