@@ -1,12 +1,4 @@
 {
-  "_platforms": {
-    "_comment": "PLATFORM SUPPORT CONFIGURATION",
-    "_comment2": "Supported Platforms:",
-    "_comment3": "✅ iOS: iPhone & iPad (iOS 15.4+) - configured in app.json -> ios.deploymentTarget & supportsTablet",
-    "_comment4": "✅ Android: Android phones (Android 6.0+ / API 23+) - configured in app.json -> android.minSdkVersion",
-    "_comment5": "❌ Web: Disabled",
-    "_comment6": "Device Types: iPhone ✅ | iPad ✅ | Android Phone ✅ | Android Tablet (compatible but phone-optimized)"
-  },
   "build": {
     "development": {
       "developmentClient": true,
