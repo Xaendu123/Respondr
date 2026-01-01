@@ -11,13 +11,13 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../src/components/ui';
-import { useTranslation } from '../src/hooks/useTranslation';
-import { useTheme } from '../src/providers/ThemeProvider';
+import { useTranslationSafe } from '../src/hooks/useTranslation';
+import { useThemeSafe } from '../src/providers/ThemeProvider';
 import { hapticLight } from '../src/utils/haptics';
 
 export default function NotFoundScreen() {
-  const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { theme } = useThemeSafe();
+  const { t } = useTranslationSafe();
   const router = useRouter();
   
   const styles = createStyles(theme);
@@ -91,7 +91,7 @@ export default function NotFoundScreen() {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
+function createStyles(theme: ReturnType<typeof useThemeSafe>['theme']) {
   return StyleSheet.create({
     container: {
       flex: 1,

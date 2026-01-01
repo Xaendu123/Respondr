@@ -3,7 +3,13 @@
  * 
  * Dynamic configuration file that loads environment variables.
  * This file extends app.json and allows for environment-specific configuration.
+ * 
+ * IMPORTANT: All platform-specific settings should be in app.json.
+ * This file is for dynamic/runtime configuration only.
  */
+
+// Load environment variables from .env file for local development
+require('dotenv').config();
 
 const withLocalizedPermissions = require('./plugins/withLocalizedPermissions');
 const withLocalizedNativePermissions = require('./plugins/withLocalizedNativePermissions');
@@ -45,6 +51,15 @@ module.exports = ({ config }) => {
       env: process.env.NODE_ENV || 'development',
     },
   };
+
+  // Ensure iOS and Android configs are properly set
+  // These should already be in app.json, but we validate here
+  if (!updatedConfig.ios) {
+    console.warn('⚠️ WARNING: iOS configuration missing in app.json');
+  }
+  if (!updatedConfig.android) {
+    console.warn('⚠️ WARNING: Android configuration missing in app.json');
+  }
 
   // Apply localization plugins
   updatedConfig = withLocalizedPermissions(updatedConfig);

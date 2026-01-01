@@ -90,3 +90,22 @@ export function useTheme(): ThemeContextValue {
   return context;
 }
 
+/**
+ * Safe hook to access theme context with fallback
+ * Returns a fallback theme if provider is not available
+ */
+export function useThemeSafe(): ThemeContextValue {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    // Return a fallback theme context
+    const fallbackTheme = getTheme('light');
+    return {
+      theme: fallbackTheme,
+      themeMode: 'light',
+      setThemeMode: async () => {},
+      isDark: false,
+    };
+  }
+  return context;
+}
+

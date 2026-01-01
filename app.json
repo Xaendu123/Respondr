@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Activity logging and social platform for first responders",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/brand/splash/splash-icon.png",
     "scheme": "respondr",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,12 +17,27 @@
       "associatedDomains": [
         "webcredentials:respondr.ch"
       ],
+      "requireFullScreen": true,
       "infoPlist": {
         "CFBundleDisplayName": "Respondr",
         "CFBundleName": "Respondr",
         "NSCameraUsageDescription": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen",
         "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen",
         "ITSAppUsesNonExemptEncryption": false,
+        "UIRequiresFullScreen": false,
+        "UIStatusBarStyle": "UIStatusBarStyleDefault",
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
+        "CADisableMinimumFrameDurationOnPhone": true,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
@@ -84,21 +99,17 @@
       "targetSdkVersion": 34,
       "minSdkVersion": 23
     },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon-light.png",
-          "imageWidth": 200,
+          "image": "./assets/brand/logos/wordmark-dark.png",
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#fff7ed",
           "dark": {
-            "image": "./assets/images/splash-icon-dark.png",
+            "image": "./assets/brand/logos/wordmark-light.png",
             "backgroundColor": "#020617"
           }
         }
@@ -116,6 +127,7 @@
       ],
       "@react-native-community/datetimepicker"
     ],
+    "jsEngine": "hermes",
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

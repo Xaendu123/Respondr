@@ -19,22 +19,39 @@ import Constants from 'expo-constants';
 // In EAS builds, environment variables are only available via Constants.expoConfig.extra
 // process.env is NOT available at runtime in production builds
 // Priority: Constants.expoConfig.extra (from app.config.js) > process.env (dev only)
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 
-                     (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL : undefined);
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 
-                        (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY : undefined);
+// Ensure we always have strings (not null/undefined) to prevent .trim() errors
+// Note: app.config.js sets these to null when missing, so we need to handle null explicitly
+const rawSupabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 
+                       (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL : undefined);
+const rawSupabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 
+                          (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY : undefined);
 
-// For Expo Go, allow missing env vars with a warning (they'll be undefined)
+// Convert to strings, handling null/undefined cases
+const supabaseUrl = (rawSupabaseUrl && typeof rawSupabaseUrl === 'string') ? rawSupabaseUrl : '';
+const supabaseAnonKey = (rawSupabaseAnonKey && typeof rawSupabaseAnonKey === 'string') ? rawSupabaseAnonKey : '';
+
+// For Expo Go, allow missing env vars with a warning (they'll be empty strings)
 // This prevents the app from crashing during development
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
+  // Helper to safely get string preview
+  const safeStringPreview = (value: any, maxLength: number = 20): string => {
+    if (!value) return 'null/undefined';
+    if (typeof value !== 'string') return `[${typeof value}]`;
+    return value.substring(0, maxLength) + '...';
+  };
+  
   const errorMsg = `Missing Supabase environment variables.
-  URL: ${supabaseUrl ? 'SET' : 'MISSING'}
-  Key: ${supabaseAnonKey ? 'SET' : 'MISSING'}
+  URL: ${supabaseUrl ? 'SET (' + safeStringPreview(supabaseUrl, 30) + ')' : 'MISSING'}
+  Key: ${supabaseAnonKey ? 'SET (' + safeStringPreview(supabaseAnonKey, 20) + ')' : 'MISSING'}
+  Raw URL type: ${typeof rawSupabaseUrl}, value: ${safeStringPreview(rawSupabaseUrl, 30)}
+  Raw Key type: ${typeof rawSupabaseAnonKey}, value: ${safeStringPreview(rawSupabaseAnonKey, 20)}
   Constants.expoConfig?.extra: ${JSON.stringify(Constants.expoConfig?.extra || {})}
-  process.env.EXPO_PUBLIC_SUPABASE_URL: ${process.env.EXPO_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING'}`;
+  process.env.EXPO_PUBLIC_SUPABASE_URL: ${process.env.EXPO_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING'}
+  __DEV__: ${__DEV__}`;
   
   if (__DEV__) {
     console.warn('⚠️ Missing Supabase environment variables:', errorMsg);
+    console.warn('💡 Tip: For local development, create a .env file or set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your shell');
   } else {
     // In production builds, log detailed error but don't crash immediately
     // This helps diagnose the issue in TestFlight
@@ -46,6 +63,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
     );
   }
 }
+
+// Ensure we always pass valid strings to createClient (Supabase library calls .trim() on these)
+// These are defined here so they're available to customFetch
+const finalSupabaseUrl = (supabaseUrl && supabaseUrl.trim()) || 'https://placeholder.supabase.co';
+const finalSupabaseAnonKey = (supabaseAnonKey && supabaseAnonKey.trim()) || 'placeholder-key';
 
 /**
  * Supabase client instance with AsyncStorage for session persistence
@@ -71,20 +93,51 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     return response;
   } catch (error: any) {
     clearTimeout(timeoutId);
-    // If it's a network error, provide more context
-    if (error.name === 'AbortError') {
+    
+    // Log error details for debugging (only in dev)
+    if (__DEV__) {
+      console.debug('Custom fetch error:', {
+        name: error?.name,
+        message: error?.message,
+        type: typeof error,
+        error: error,
+        url: typeof input === 'string' ? input : input instanceof URL ? input.toString() : 'unknown',
+      });
+    }
+    
+    // Handle different error types
+    // Check for AbortError (timeout)
+    if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED') {
       throw new Error('Network request timeout. Please check your internet connection.');
     }
-    if (error.message?.includes('Network request failed') || error.message?.includes('Failed to fetch')) {
+    
+    // Check for network errors
+    const errorMessage = error?.message || String(error || '');
+    const errorString = errorMessage.toLowerCase();
+    
+    if (errorString.includes('network request failed') || 
+        errorString.includes('failed to fetch') ||
+        errorString.includes('networkerror') ||
+        errorString.includes('err_network') ||
+        error?.code === 'ENOTFOUND' ||
+        error?.code === 'ECONNREFUSED') {
+      
+      // Check if we're using placeholder values
+      if (finalSupabaseUrl === 'https://placeholder.supabase.co' || finalSupabaseAnonKey === 'placeholder-key') {
+        throw new Error('Supabase configuration is missing. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY environment variables.');
+      }
+      
       throw new Error('Network request failed. Please check your internet connection and try again.');
     }
+    
+    // Re-throw original error if we can't categorize it
     throw error;
   }
 };
 
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
+  finalSupabaseUrl,
+  finalSupabaseAnonKey,
   {
     auth: {
       storage: AsyncStorage,
@@ -98,7 +151,7 @@ export const supabase = createClient(
       fetch: customFetch,
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey || '',
+        'apikey': finalSupabaseAnonKey,
       },
     },
     db: {
@@ -114,12 +167,14 @@ export const supabase = createClient(
 
 // In production, test connection
 if (!__DEV__) {
-  // Test connection silently in background if we have config
-  if (supabaseUrl && supabaseAnonKey) {
+  // Test connection silently in background if we have valid config (not placeholders)
+  if (finalSupabaseUrl && finalSupabaseAnonKey && 
+      finalSupabaseUrl !== 'https://placeholder.supabase.co' && 
+      finalSupabaseAnonKey !== 'placeholder-key') {
     supabase.auth.getSession().catch((error) => {
       console.error('Supabase connection test failed:', {
         error: error.message,
-        url: supabaseUrl.substring(0, 40) + '...',
+        url: finalSupabaseUrl.substring(0, 40) + '...',
         timestamp: new Date().toISOString(),
       });
     });
