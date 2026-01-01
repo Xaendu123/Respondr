@@ -9,27 +9,27 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		46F16C2D10AC01FE6253E177 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D1D4CC4D7C77E89DA3D2C6 /* ExpoModulesProvider.swift */; };
-		7C88EDFB21E6A0EC254DB318 /* libPods-respondr.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DE8F6A55EB5A068F770F5E9 /* libPods-respondr.a */; };
-		8E494D419FCD31B8FE194332 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F434D3E6FB78C75A22420AB2 /* PrivacyInfo.xcprivacy */; };
+		408310F9909B346E6BB767BE /* libPods-Respondr.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F22AD6583C4175AF230695B /* libPods-Respondr.a */; };
+		62D79DCC548DF10032089FB0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D57853177390DD89156A2444 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		ED972E90111DCCF9B92180B6 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653795685DC529306B0D0859 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* respondr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = respondr.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = respondr/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = respondr/Info.plist; sourceTree = "<group>"; };
-		88D1D4CC4D7C77E89DA3D2C6 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-respondr/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		8D127CEC6A87567C205E9706 /* Pods-respondr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-respondr.debug.xcconfig"; path = "Target Support Files/Pods-respondr/Pods-respondr.debug.xcconfig"; sourceTree = "<group>"; };
-		8DE8F6A55EB5A068F770F5E9 /* libPods-respondr.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-respondr.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = respondr/SplashScreen.storyboard; sourceTree = "<group>"; };
-		ACBB684E643403C417E7D093 /* Pods-respondr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-respondr.release.xcconfig"; path = "Target Support Files/Pods-respondr/Pods-respondr.release.xcconfig"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* Respondr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Respondr.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Respondr/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Respondr/Info.plist; sourceTree = "<group>"; };
+		1D69AC26BC088402EA092232 /* Pods-Respondr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Respondr.debug.xcconfig"; path = "Target Support Files/Pods-Respondr/Pods-Respondr.debug.xcconfig"; sourceTree = "<group>"; };
+		1F22AD6583C4175AF230695B /* libPods-Respondr.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Respondr.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		61D899374948F55CE393BE26 /* Pods-Respondr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Respondr.release.xcconfig"; path = "Target Support Files/Pods-Respondr/Pods-Respondr.release.xcconfig"; sourceTree = "<group>"; };
+		653795685DC529306B0D0859 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Respondr/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Respondr/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		D57853177390DD89156A2444 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Respondr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = respondr/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* respondr-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "respondr-Bridging-Header.h"; path = "respondr/respondr-Bridging-Header.h"; sourceTree = "<group>"; };
-		F434D3E6FB78C75A22420AB2 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = respondr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Respondr/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* Respondr-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Respondr-Bridging-Header.h"; path = "Respondr/Respondr-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,50 +37,51 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7C88EDFB21E6A0EC254DB318 /* libPods-respondr.a in Frameworks */,
+				408310F9909B346E6BB767BE /* libPods-Respondr.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		01A055C4AC5049B347F2D201 /* respondr */ = {
-			isa = PBXGroup;
-			children = (
-				88D1D4CC4D7C77E89DA3D2C6 /* ExpoModulesProvider.swift */,
-			);
-			name = respondr;
-			sourceTree = "<group>";
-		};
-		08CC3480B39E1F42F3AFB7AA /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				01A055C4AC5049B347F2D201 /* respondr */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		13B07FAE1A68108700A75B9A /* respondr */ = {
+		13B07FAE1A68108700A75B9A /* Respondr */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* respondr-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* Respondr-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				F434D3E6FB78C75A22420AB2 /* PrivacyInfo.xcprivacy */,
+				D57853177390DD89156A2444 /* PrivacyInfo.xcprivacy */,
 			);
-			name = respondr;
+			name = Respondr;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				8DE8F6A55EB5A068F770F5E9 /* libPods-respondr.a */,
+				1F22AD6583C4175AF230695B /* libPods-Respondr.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		34317D6A84CE44F1A761D67A /* Respondr */ = {
+			isa = PBXGroup;
+			children = (
+				653795685DC529306B0D0859 /* ExpoModulesProvider.swift */,
+			);
+			name = Respondr;
+			sourceTree = "<group>";
+		};
+		3CFDB7C6DC03CF988B8E9C69 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				1D69AC26BC088402EA092232 /* Pods-Respondr.debug.xcconfig */,
+				61D899374948F55CE393BE26 /* Pods-Respondr.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -93,12 +94,12 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* respondr */,
+				13B07FAE1A68108700A75B9A /* Respondr */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				A4005CA2BE649B17FE4C8E67 /* Pods */,
-				08CC3480B39E1F42F3AFB7AA /* ExpoModulesProviders */,
+				3CFDB7C6DC03CF988B8E9C69 /* Pods */,
+				C1CCD25F0A2655781E10FD76 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -108,19 +109,9 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* respondr.app */,
+				13B07F961A680F5B00A75B9A /* Respondr.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		A4005CA2BE649B17FE4C8E67 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				8D127CEC6A87567C205E9706 /* Pods-respondr.debug.xcconfig */,
-				ACBB684E643403C417E7D093 /* Pods-respondr.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -129,32 +120,40 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = respondr/Supporting;
+			path = Respondr/Supporting;
+			sourceTree = "<group>";
+		};
+		C1CCD25F0A2655781E10FD76 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				34317D6A84CE44F1A761D67A /* Respondr */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* respondr */ = {
+		13B07F861A680F5B00A75B9A /* Respondr */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "respondr" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Respondr" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				D2F86D1BBB6A12194A600D60 /* [Expo] Configure project */,
+				5EE1FBC64592B6C725B22EE0 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				ECBF88AFC99B6C197CB671C0 /* [CP] Embed Pods Frameworks */,
+				C867AF00DE64632B7B0B940D /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = respondr;
-			productName = respondr;
-			productReference = 13B07F961A680F5B00A75B9A /* respondr.app */;
+			name = Respondr;
+			productName = Respondr;
+			productReference = 13B07F961A680F5B00A75B9A /* Respondr.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -167,12 +166,10 @@
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1250;
-						DevelopmentTeam = "U8Q2XKW88A";
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "respondr" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Respondr" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -185,7 +182,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* respondr */,
+				13B07F861A680F5B00A75B9A /* Respondr */,
 			);
 		};
 /* End PBXProject section */
@@ -198,7 +195,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				8E494D419FCD31B8FE194332 /* PrivacyInfo.xcprivacy in Resources */,
+				62D79DCC548DF10032089FB0 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,12 +234,36 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-respondr-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-Respondr-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		5EE1FBC64592B6C725B22EE0 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/Respondr/Respondr.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Respondr/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Respondr/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Respondr/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -250,7 +271,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-respondr/Pods-respondr-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Respondr/Pods-Respondr-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
@@ -275,40 +296,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-respondr/Pods-respondr-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Respondr/Pods-Respondr-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		D2F86D1BBB6A12194A600D60 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/respondr/respondr.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-respondr/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-respondr/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-respondr/expo-configure-project.sh\"\n";
-		};
-		ECBF88AFC99B6C197CB671C0 /* [CP] Embed Pods Frameworks */ = {
+		C867AF00DE64632B7B0B940D /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-respondr/Pods-respondr-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Respondr/Pods-Respondr-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -321,7 +318,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-respondr/Pods-respondr-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Respondr/Pods-Respondr-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -332,7 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				46F16C2D10AC01FE6253E177 /* ExpoModulesProvider.swift in Sources */,
+				ED972E90111DCCF9B92180B6 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -341,18 +338,21 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8D127CEC6A87567C205E9706 /* Pods-respondr.debug.xcconfig */;
+			baseConfigurationReference = 1D69AC26BC088402EA092232 /* Pods-Respondr.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = respondr/respondr.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Respondr/Respondr.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U8Q2XKW88A;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = respondr/Info.plist;
+				INFOPLIST_FILE = Respondr/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Respondr;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -366,27 +366,30 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = ch.respondr.app;
-				PRODUCT_NAME = respondr;
-				SWIFT_OBJC_BRIDGING_HEADER = "respondr/respondr-Bridging-Header.h";
+				PRODUCT_NAME = Respondr;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Respondr/Respondr-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
-				DEVELOPMENT_TEAM = "U8Q2XKW88A";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = ACBB684E643403C417E7D093 /* Pods-respondr.release.xcconfig */;
+			baseConfigurationReference = 61D899374948F55CE393BE26 /* Pods-Respondr.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = respondr/respondr.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Respondr/Respondr.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = respondr/Info.plist;
+				DEVELOPMENT_TEAM = U8Q2XKW88A;
+				INFOPLIST_FILE = Respondr/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Respondr;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -400,14 +403,14 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = ch.respondr.app;
-				PRODUCT_NAME = respondr;
-				SWIFT_OBJC_BRIDGING_HEADER = "respondr/respondr-Bridging-Header.h";
+				PRODUCT_NAME = Respondr;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Respondr/Respondr-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
-				DEVELOPMENT_TEAM = "U8Q2XKW88A";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
 		};
@@ -532,7 +535,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "respondr" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Respondr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -541,7 +544,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "respondr" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Respondr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

@@ -22,9 +22,9 @@ import Constants from 'expo-constants';
 // Ensure we always have strings (not null/undefined) to prevent .trim() errors
 // Note: app.config.js sets these to null when missing, so we need to handle null explicitly
 const rawSupabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 
-                       (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL : undefined);
+                     (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL : undefined);
 const rawSupabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 
-                          (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY : undefined);
+                        (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY : undefined);
 
 // Convert to strings, handling null/undefined cases
 const supabaseUrl = (rawSupabaseUrl && typeof rawSupabaseUrl === 'string') ? rawSupabaseUrl : '';

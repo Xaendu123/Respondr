@@ -2,10 +2,12 @@
  * BOTTOM TABS NAVIGATION LAYOUT
  * 
  * Defines the bottom tab navigation for the main app screens.
+ * Includes slide animations based on tab order (left/right).
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
+import { TabAnimationProvider } from "../../src/contexts/TabAnimationContext";
 import { useTranslation } from "../../src/hooks/useTranslation";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme } from "../../src/providers/ThemeProvider";
@@ -22,7 +24,8 @@ export default function TabsLayout() {
   }
 
   return (
-    <Tabs
+    <TabAnimationProvider>
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
@@ -37,6 +40,9 @@ export default function TabsLayout() {
           shadowOpacity: 0,
           shadowRadius: 0,
         },
+        // Keep all screens mounted to enable custom slide animations
+        // This prevents React Navigation from unmounting inactive tabs
+        lazy: false,
       }}
       screenListeners={{
         tabPress: () => {
@@ -82,6 +88,7 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </TabAnimationProvider>
   );
 }
 

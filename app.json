@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "respondr",
+    "name": "Respondr",
     "slug": "respondr",
     "version": "1.0.0",
     "description": "Activity logging and social platform for first responders",
@@ -13,6 +13,7 @@
       "deploymentTarget": "15.4",
       "bundleIdentifier": "ch.respondr.app",
       "buildNumber": "1",
+      "developmentTeam": "U8Q2XKW88A",
       "usesNonExemptEncryption": false,
       "associatedDomains": [
         "webcredentials:respondr.ch"
@@ -21,6 +22,7 @@
       "infoPlist": {
         "CFBundleDisplayName": "Respondr",
         "CFBundleName": "Respondr",
+        "LSApplicationCategoryType": "public.app-category.education",
         "NSCameraUsageDescription": "Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen",
         "NSPhotoLibraryUsageDescription": "Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen",
         "ITSAppUsesNonExemptEncryption": false,
@@ -33,9 +35,7 @@
         ],
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
+          "UIInterfaceOrientationPortraitUpsideDown"
         ],
         "CADisableMinimumFrameDurationOnPhone": true,
         "NSAppTransportSecurity": {
@@ -123,6 +123,10 @@
       ],
       [
         "./plugins/withLocalizedNativePermissions",
+        null
+      ],
+      [
+        "./plugins/withDevelopmentTeam",
         null
       ],
       "@react-native-community/datetimepicker"

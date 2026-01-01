@@ -56,6 +56,12 @@ module.exports = ({ config }) => {
   // These should already be in app.json, but we validate here
   if (!updatedConfig.ios) {
     console.warn('⚠️ WARNING: iOS configuration missing in app.json');
+  } else {
+    // Ensure development team is always set for iOS
+    if (!updatedConfig.ios.developmentTeam) {
+      updatedConfig.ios.developmentTeam = 'U8Q2XKW88A';
+      console.log('✅ Set iOS development team to: U8Q2XKW88A');
+    }
   }
   if (!updatedConfig.android) {
     console.warn('⚠️ WARNING: Android configuration missing in app.json');
