@@ -57,6 +57,8 @@
         "track": "internal"
       }
     }
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
 }
-

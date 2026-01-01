@@ -26,63 +26,143 @@ const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-const TRANSLATIONS_PATH = path.join(__dirname, '../src/i18n/locales');
+// Robust path resolution - works in both local and EAS builds
+function getTranslationsPath() {
+  // Try multiple possible paths
+  const possiblePaths = [
+    path.join(__dirname, '../src/i18n/locales'),
+    path.join(process.cwd(), 'src/i18n/locales'),
+    path.resolve('src/i18n/locales'),
+  ];
+  
+  for (const translationsPath of possiblePaths) {
+    const dePath = path.join(translationsPath, 'de.json');
+    const enPath = path.join(translationsPath, 'en.json');
+    
+    if (fs.existsSync(dePath) && fs.existsSync(enPath)) {
+      return translationsPath;
+    }
+  }
+  
+  // If no path found, return the first one (will fail gracefully with error handling)
+  return possiblePaths[0];
+}
 
 function getTranslations() {
-  const de = JSON.parse(fs.readFileSync(path.join(TRANSLATIONS_PATH, 'de.json'), 'utf8'));
-  const en = JSON.parse(fs.readFileSync(path.join(TRANSLATIONS_PATH, 'en.json'), 'utf8'));
+  const translationsPath = getTranslationsPath();
+  const dePath = path.join(translationsPath, 'de.json');
+  const enPath = path.join(translationsPath, 'en.json');
+  
+  // Default fallback translations
+  const defaultTranslations = {
+    de: {
+      camera: 'Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen',
+      photoLibrary: 'Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen',
+    },
+    en: {
+      camera: 'We need access to your camera to take a profile picture',
+      photoLibrary: 'We need access to your photos to select a profile picture',
+    },
+  };
+  
+  let de = {};
+  let en = {};
+  
+  try {
+    if (fs.existsSync(dePath)) {
+      de = JSON.parse(fs.readFileSync(dePath, 'utf8'));
+    } else {
+      console.warn(`⚠️ Translation file not found: ${dePath}, using defaults`);
+    }
+  } catch (error) {
+    console.warn(`⚠️ Failed to read German translations: ${error.message}, using defaults`);
+  }
+  
+  try {
+    if (fs.existsSync(enPath)) {
+      en = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+    } else {
+      console.warn(`⚠️ Translation file not found: ${enPath}, using defaults`);
+    }
+  } catch (error) {
+    console.warn(`⚠️ Failed to read English translations: ${error.message}, using defaults`);
+  }
   
   return {
     de: {
-      camera: de.profile?.cameraPermissionRequired || 'Wir benötigen Zugriff auf die Kamera, um ein Profilbild aufzunehmen',
-      photoLibrary: de.profile?.photoPermissionRequired || 'Wir benötigen Zugriff auf deine Fotos, um ein Profilbild auszuwählen',
+      camera: de.profile?.cameraPermissionRequired || defaultTranslations.de.camera,
+      photoLibrary: de.profile?.photoPermissionRequired || defaultTranslations.de.photoLibrary,
     },
     en: {
-      camera: en.profile?.cameraPermissionRequired || 'We need access to your camera to take a profile picture',
-      photoLibrary: en.profile?.photoPermissionRequired || 'We need access to your photos to select a profile picture',
+      camera: en.profile?.cameraPermissionRequired || defaultTranslations.en.camera,
+      photoLibrary: en.profile?.photoPermissionRequired || defaultTranslations.en.photoLibrary,
     },
   };
 }
 
-const withLocalizedNativePermissions = (config) => {
+function withLocalizedNativePermissions(config) {
   // iOS: Create InfoPlist.strings files
   config = withDangerousMod(config, [
     'ios',
     async (config) => {
-      const translations = getTranslations();
-      
-      // Only create files if native project exists (after prebuild)
-      if (!config.modRequest.platformProjectRoot || !fs.existsSync(config.modRequest.platformProjectRoot)) {
-        return config;
-      }
-      
-      const iosPath = path.join(config.modRequest.platformProjectRoot, config.modRequest.projectName);
-      
-      // Create de.lproj directory and InfoPlist.strings
-      const deLprojPath = path.join(iosPath, 'de.lproj');
-      if (!fs.existsSync(deLprojPath)) {
-        fs.mkdirSync(deLprojPath, { recursive: true });
-      }
-      
-      const deInfoPlistStrings = path.join(deLprojPath, 'InfoPlist.strings');
-      const deContent = `/* Localized permission descriptions - German */
+      try {
+        if (process.env.EAS_BUILD) {
+          console.log('🔧 [Plugin] Running in EAS build environment');
+          console.log(`🔧 [Plugin] Working directory: ${process.cwd()}`);
+          console.log(`🔧 [Plugin] __dirname: ${__dirname}`);
+        }
+        
+        const translations = getTranslations();
+        
+        // Only create files if native project exists (after prebuild)
+        if (!config.modRequest?.platformProjectRoot || !fs.existsSync(config.modRequest.platformProjectRoot)) {
+          if (process.env.EAS_BUILD) {
+            console.log(`⚠️ [Plugin] iOS platformProjectRoot not available: ${config.modRequest?.platformProjectRoot || 'undefined'}`);
+          }
+          return config;
+        }
+        
+        const iosPath = path.join(config.modRequest.platformProjectRoot, config.modRequest.projectName);
+        
+        if (process.env.EAS_BUILD) {
+          console.log(`🔧 [Plugin] iOS path: ${iosPath}`);
+        }
+        
+        // Create de.lproj directory and InfoPlist.strings
+        const deLprojPath = path.join(iosPath, 'de.lproj');
+        if (!fs.existsSync(deLprojPath)) {
+          fs.mkdirSync(deLprojPath, { recursive: true });
+        }
+        
+        const deInfoPlistStrings = path.join(deLprojPath, 'InfoPlist.strings');
+        const deContent = `/* Localized permission descriptions - German */
 "NSCameraUsageDescription" = "${translations.de.camera.replace(/"/g, '\\"')}";
 "NSPhotoLibraryUsageDescription" = "${translations.de.photoLibrary.replace(/"/g, '\\"')}";
 `;
-      fs.writeFileSync(deInfoPlistStrings, deContent);
-      
-      // Create en.lproj directory and InfoPlist.strings
-      const enLprojPath = path.join(iosPath, 'en.lproj');
-      if (!fs.existsSync(enLprojPath)) {
-        fs.mkdirSync(enLprojPath, { recursive: true });
-      }
-      
-      const enInfoPlistStrings = path.join(enLprojPath, 'InfoPlist.strings');
-      const enContent = `/* Localized permission descriptions - English */
+        fs.writeFileSync(deInfoPlistStrings, deContent);
+        
+        // Create en.lproj directory and InfoPlist.strings
+        const enLprojPath = path.join(iosPath, 'en.lproj');
+        if (!fs.existsSync(enLprojPath)) {
+          fs.mkdirSync(enLprojPath, { recursive: true });
+        }
+        
+        const enInfoPlistStrings = path.join(enLprojPath, 'InfoPlist.strings');
+        const enContent = `/* Localized permission descriptions - English */
 "NSCameraUsageDescription" = "${translations.en.camera.replace(/"/g, '\\"')}";
 "NSPhotoLibraryUsageDescription" = "${translations.en.photoLibrary.replace(/"/g, '\\"')}";
 `;
-      fs.writeFileSync(enInfoPlistStrings, enContent);
+        fs.writeFileSync(enInfoPlistStrings, enContent);
+        
+        if (process.env.EAS_BUILD) {
+          console.log('✅ [Plugin] iOS localization files created successfully');
+        }
+      } catch (error) {
+        console.error('❌ [Plugin] Failed to create iOS localization files:', error.message);
+        if (process.env.EAS_BUILD) {
+          console.error('❌ [Plugin] Error stack:', error.stack);
+        }
+      }
       
       return config;
     },
@@ -92,14 +172,22 @@ const withLocalizedNativePermissions = (config) => {
   config = withDangerousMod(config, [
     'android',
     async (config) => {
-      const translations = getTranslations();
-      
-      // Only create files if native project exists (after prebuild)
-      if (!config.modRequest.platformProjectRoot || !fs.existsSync(config.modRequest.platformProjectRoot)) {
-        return config;
-      }
-      
-      const androidPath = path.join(config.modRequest.platformProjectRoot, 'app', 'src', 'main', 'res');
+      try {
+        if (process.env.EAS_BUILD) {
+          console.log('🔧 [Plugin] Running Android mod in EAS build environment');
+        }
+        
+        const translations = getTranslations();
+        
+        // Only create files if native project exists (after prebuild)
+        if (!config.modRequest?.platformProjectRoot || !fs.existsSync(config.modRequest.platformProjectRoot)) {
+          if (process.env.EAS_BUILD) {
+            console.log(`⚠️ [Plugin] Android platformProjectRoot not available: ${config.modRequest?.platformProjectRoot || 'undefined'}`);
+          }
+          return config;
+        }
+        
+        const androidPath = path.join(config.modRequest.platformProjectRoot, 'app', 'src', 'main', 'res');
       
       // Create values-de/strings.xml (German)
       const valuesDePath = path.join(androidPath, 'values-de');
@@ -133,12 +221,22 @@ const withLocalizedNativePermissions = (config) => {
 `;
       fs.writeFileSync(enStringsXml, enContent);
       
+      if (process.env.EAS_BUILD) {
+        console.log('✅ [Plugin] Android localization files created successfully');
+      }
+      } catch (error) {
+        console.error('❌ [Plugin] Failed to create Android localization files:', error.message);
+        if (process.env.EAS_BUILD) {
+          console.error('❌ [Plugin] Error stack:', error.stack);
+        }
+      }
+      
       return config;
     },
   ]);
   
   return config;
-};
+}
 
 module.exports = withLocalizedNativePermissions;
 
