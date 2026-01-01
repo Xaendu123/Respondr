@@ -13,7 +13,6 @@
       "deploymentTarget": "15.4",
       "bundleIdentifier": "ch.respondr.app",
       "buildNumber": "1",
-      "developmentTeam": "U8Q2XKW88A",
       "usesNonExemptEncryption": false,
       "associatedDomains": [
         "webcredentials:respondr.ch"

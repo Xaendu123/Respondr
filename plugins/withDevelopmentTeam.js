@@ -24,7 +24,7 @@ function withInfoPlistDisplayName(config) {
 function withXcodeBuildSettings(config) {
   return withXcodeProject(config, (config) => {
     const xcodeProject = config.modResults;
-    const developmentTeam = config.ios?.developmentTeam || 'U8Q2XKW88A';
+    const developmentTeam = config.ios?.developmentTeam; // Only set if provided
     const buildNumber = config.ios?.buildNumber || '1';
     const version = config.version || '1.0.0';
     const displayName = config.ios?.infoPlist?.CFBundleDisplayName || 
@@ -47,8 +47,10 @@ function withXcodeBuildSettings(config) {
         (buildSettings.PRODUCT_NAME && buildSettings.PRODUCT_NAME.toLowerCase().includes('respondr'));
       
       if (isMainTarget) {
-        // Set development team
-        buildSettings.DEVELOPMENT_TEAM = developmentTeam;
+        // Set development team (only if provided - don't force a default)
+        if (developmentTeam) {
+          buildSettings.DEVELOPMENT_TEAM = developmentTeam;
+        }
         
         // Set build number (CURRENT_PROJECT_VERSION)
         buildSettings.CURRENT_PROJECT_VERSION = buildNumber;
@@ -71,7 +73,9 @@ function withXcodeBuildSettings(config) {
       }
     });
 
-    console.log(`✅ Development team set to: ${developmentTeam}`);
+    if (developmentTeam) {
+      console.log(`✅ Development team set to: ${developmentTeam}`);
+    }
     console.log(`✅ Build number set to: ${buildNumber}`);
     console.log(`✅ Version set to: ${version}`);
     console.log(`✅ Display name set to: ${displayName}`);
