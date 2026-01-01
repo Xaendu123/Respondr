@@ -11,6 +11,10 @@
 # production
 /build
 
+# Native directories - ignore everything (regenerated on each build)
+ios/
+android/
+
 # misc
 .DS_Store
 .env
