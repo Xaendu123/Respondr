@@ -15,6 +15,7 @@ import { supabase } from "../src/config/supabase";
 import { useTranslation } from "../src/hooks/useTranslation";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/providers/AuthProvider";
+import { useToast } from "../src/providers/ToastProvider";
 import { handleOAuthCallback } from "../src/services/supabase/authService";
 
 // Keep the splash screen visible while we fetch resources
@@ -25,6 +26,7 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   // Track if we're currently processing a deep link to prevent auth redirects from interfering
   const isProcessingDeepLinkRef = useRef(false);
 
@@ -184,10 +186,7 @@ function RootLayoutNav() {
             return true;
           } else {
             console.error('Session lost after OTP verification');
-            Alert.alert(
-              t('errors.auth'),
-              t('auth.confirmationEmailInvalid') || 'Session could not be established. Please try logging in.'
-            );
+            showToast({ type: 'error', message: t('auth.confirmationEmailInvalid') || 'Session could not be established. Please try logging in.' });
             router.replace('/login');
             return true;
           }
@@ -203,10 +202,7 @@ function RootLayoutNav() {
           
           // Verification failed and no session
           console.error('OTP verification failed and no session found');
-          Alert.alert(
-            t('errors.auth'),
-            t('auth.confirmationEmailInvalid') || 'Invalid or expired confirmation link. Please request a new confirmation email.'
-          );
+          showToast({ type: 'error', message: t('auth.confirmationEmailInvalid') || 'Invalid or expired confirmation link. Please request a new confirmation email.' });
           router.replace('/login');
           return true;
         }
@@ -221,10 +217,7 @@ function RootLayoutNav() {
             router.replace('/(tabs)/log');
             resolve(true);
           } else {
-            Alert.alert(
-              t('errors.auth'),
-              t('auth.confirmationEmailInvalid') || 'Could not verify email. Please request a new confirmation email.'
-            );
+            showToast({ type: 'error', message: t('auth.confirmationEmailInvalid') || 'Could not verify email. Please request a new confirmation email.' });
             router.replace('/login');
             resolve(true);
           }
@@ -273,10 +266,7 @@ function RootLayoutNav() {
           }
         } catch (error) {
           console.error('=== DIRECT CONFIRMATION EXCEPTION ===', error);
-          Alert.alert(
-            t('errors.auth'),
-            t('auth.confirmationEmailInvalid') || 'Failed to process confirmation link.'
-          );
+          showToast({ type: 'error', message: t('auth.confirmationEmailInvalid') || 'Failed to process confirmation link.' });
           router.replace('/login');
         }
       }
@@ -333,10 +323,7 @@ function RootLayoutNav() {
             
             if (sessionError) {
               console.error('Password reset session error:', sessionError);
-              Alert.alert(
-                t('errors.auth'),
-                t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.'
-              );
+              showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.' });
               router.replace('/login');
             } else if (sessionData?.session) {
               await refreshUser();
@@ -360,10 +347,7 @@ function RootLayoutNav() {
               
               if (error) {
                 console.error('Password reset OTP verification error:', error);
-                Alert.alert(
-                  t('errors.auth'),
-                  t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.'
-                );
+                showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Invalid or expired reset link. Please request a new password reset.' });
                 router.replace('/login');
               } else if (data?.session) {
                 await refreshUser();
@@ -382,19 +366,13 @@ function RootLayoutNav() {
                     params: { url },
                   });
                 } else {
-                  Alert.alert(
-                    t('errors.auth'),
-                    t('auth.invalidResetLink') || 'Could not create session. Please request a new password reset.'
-                  );
+                  showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Could not create session. Please request a new password reset.' });
                   router.replace('/login');
                 }
               }
             } catch (verifyError) {
               console.error('Password reset OTP verification exception:', verifyError);
-              Alert.alert(
-                t('errors.auth'),
-                t('auth.invalidResetLink') || 'Failed to verify reset link. Please request a new password reset.'
-              );
+              showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Failed to verify reset link. Please request a new password reset.' });
               router.replace('/login');
             }
           } else {
@@ -405,18 +383,12 @@ function RootLayoutNav() {
               hasTokenHash: !!tokenHash,
               searchParams: Object.fromEntries(urlObj.searchParams),
             });
-            Alert.alert(
-              t('errors.auth'),
-              t('auth.invalidResetLink') || 'Invalid reset link format. Please request a new password reset.'
-            );
+            showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Invalid reset link format. Please request a new password reset.' });
             router.replace('/login');
           }
         } catch (error) {
           console.error('Password reset deep link error:', error);
-          Alert.alert(
-            t('errors.auth'),
-            t('auth.invalidResetLink') || 'Failed to process reset link. Please request a new password reset.'
-          );
+          showToast({ type: 'error', message: t('auth.invalidResetLink') || 'Failed to process reset link. Please request a new password reset.' });
           router.replace('/login');
         }
       }
@@ -499,10 +471,11 @@ function RootLayoutNav() {
     const inNotLoggedIn = (segments[0] as string) === 'not-logged-in';
     const inNotFound = (segments[0] as string) === 'not-found';
     // Protected screens that require authentication
-    const inProtectedScreens = segments[0] === 'settings' || 
-                                segments[0] === 'edit-profile' || 
-                                segments[0] === 'badges' || 
-                                segments[0] === 'my-activities';
+    const inProtectedScreens = segments[0] === 'settings' ||
+                                segments[0] === 'edit-profile' ||
+                                segments[0] === 'badges' ||
+                                segments[0] === 'my-activities' ||
+                                segments[0] === 'profile';
 
     // If not authenticated and trying to access protected content
     // BUT: Don't redirect if we're on auth screens (login, register, confirm-email, reset-password, not-found, not-logged-in)
@@ -528,88 +501,22 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerShown: false,
-        // Default slide animation from right (iOS/Android default)
-        animation: 'default',
-        gestureEnabled: true,
-        gestureDirection: 'horizontal',
+        animation: 'none',
+        gestureEnabled: false,
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen 
-        name="login" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-          gestureEnabled: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="register" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-          gestureEnabled: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="confirm-email" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-          gestureEnabled: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="reset-password" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-          gestureEnabled: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="not-found" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-        }} 
-      />
-      <Stack.Screen 
-        name="not-logged-in" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-        }} 
-      />
-      <Stack.Screen 
-        name="settings" 
-        options={{ 
-          presentation: "modal",
-          animation: 'default',
-        }} 
-      />
-      <Stack.Screen 
-        name="edit-profile" 
-        options={{ 
-          presentation: "modal",
-          animation: 'default',
-        }} 
-      />
-      <Stack.Screen 
-        name="badges" 
-        options={{
-          animation: 'default',
-          gestureEnabled: true,
-        }}
-      />
-      <Stack.Screen 
-        name="my-activities" 
-        options={{ 
-          headerShown: false,
-          animation: 'default',
-          gestureEnabled: true,
-        }} 
-      />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="confirm-email" options={{ headerShown: false }} />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+      <Stack.Screen name="not-found" options={{ headerShown: false }} />
+      <Stack.Screen name="not-logged-in" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
+      <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
+      <Stack.Screen name="badges" options={{ headerShown: false }} />
+      <Stack.Screen name="my-activities" options={{ headerShown: false }} />
+      <Stack.Screen name="profile" options={{ headerShown: false }} />
     </Stack>
   );
 }

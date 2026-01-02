@@ -17,6 +17,7 @@ import { supabase } from '../config/supabase';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 import { updateProfile } from '../services/supabase/authService';
 import { getAllOrganizations, searchOrganizations } from '../services/supabase/organizationsService';
 import { hapticSelect, hapticSuccess } from '../utils/haptics';
@@ -26,6 +27,7 @@ export function EditProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const styles = createStyles(theme);
 
@@ -198,10 +200,7 @@ export function EditProfileScreen() {
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          t('common.permissionRequired'),
-          t('profile.photoPermissionRequired')
-        );
+        showToast({ type: 'warning', message: t('profile.photoPermissionRequired') });
         return;
       }
 
@@ -215,10 +214,7 @@ export function EditProfileScreen() {
             onPress: async () => {
               const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
               if (cameraStatus.status !== 'granted') {
-                Alert.alert(
-                  t('common.permissionRequired'),
-                  t('profile.cameraPermissionRequired')
-                );
+                showToast({ type: 'warning', message: t('profile.cameraPermissionRequired') });
                 return;
               }
               const result = await ImagePicker.launchCameraAsync({
@@ -254,7 +250,7 @@ export function EditProfileScreen() {
       );
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert(t('errors.generic'), t('profile.avatarUploadError'));
+      showToast({ type: 'error', message: t('profile.avatarUploadError') });
     }
   };
 
@@ -309,11 +305,11 @@ export function EditProfileScreen() {
       await refreshUser();
       hapticSuccess();
 
-      Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
+      showToast({ type: 'success', message: t('profile.avatarUpdateSuccess') });
     } catch (error: any) {
       console.error('Avatar upload failed:', error);
       const errorMessage = error?.message || t('profile.avatarUploadError');
-      Alert.alert(t('errors.generic'), errorMessage);
+      showToast({ type: 'error', message: errorMessage });
     } finally {
       setUploadingAvatar(false);
     }
@@ -358,10 +354,10 @@ export function EditProfileScreen() {
               await refreshUser();
               hapticSuccess();
 
-              Alert.alert(t('common.success'), t('profile.avatarDeleteSuccess'));
+              showToast({ type: 'success', message: t('profile.avatarDeleteSuccess') });
             } catch (error: any) {
               console.error('Avatar delete failed:', error);
-              Alert.alert(t('errors.generic'), t('profile.avatarDeleteError'));
+              showToast({ type: 'error', message: t('profile.avatarDeleteError') });
             } finally {
               setUploadingAvatar(false);
             }
@@ -466,16 +462,15 @@ export function EditProfileScreen() {
       
       setHasChanges(false);
       hapticSuccess();
-      
-      // Show success and navigate back
+
+      // Show success toast and navigate back
+      showToast({ type: 'success', message: t('profile.updateSuccess') });
       setTimeout(() => {
-        Alert.alert(t('common.success'), t('profile.updateSuccess'), [
-          { text: t('common.ok'), onPress: () => router.back() }
-        ]);
-      }, 100);
+        router.back();
+      }, 500);
     } catch (error) {
       console.error('Failed to update profile:', error);
-      Alert.alert(t('errors.generic'), t('profile.updateError'));
+      showToast({ type: 'error', message: t('profile.updateError') });
     } finally {
       setSaving(false);
     }

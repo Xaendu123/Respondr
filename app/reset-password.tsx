@@ -15,12 +15,14 @@ import { supabase } from '../src/config/supabase';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { useToast } from '../src/providers/ToastProvider';
 import { hapticError, hapticSuccess } from '../src/utils/haptics';
 
 export default function ResetPasswordScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { refreshUser } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const params = useLocalSearchParams<{ url?: string }>();
   
@@ -52,10 +54,7 @@ export default function ResetPasswordScreen() {
             refresh_token: refreshToken,
           }).then(({ data, error }) => {
             if (error) {
-              Alert.alert(
-                t('errors.auth'),
-                t('auth.invalidResetLink')
-              );
+              showToast({ type: 'error', message: t('auth.invalidResetLink') });
             }
           });
         }
@@ -99,22 +98,22 @@ export default function ResetPasswordScreen() {
     // Validate
     if (!password.trim() || !confirmPassword.trim()) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
+      showToast({ type: 'warning', message: t('auth.fillAllFields') });
       return;
     }
-    
+
     const pwdError = validatePassword(password);
     if (pwdError) {
       hapticError();
       setPasswordError(pwdError);
-      Alert.alert(t('errors.validation'), pwdError);
+      showToast({ type: 'warning', message: pwdError });
       return;
     }
-    
+
     if (password !== confirmPassword) {
       hapticError();
       setConfirmPasswordError(t('auth.passwordsMustMatch'));
-      Alert.alert(t('errors.validation'), t('auth.passwordsMustMatch'));
+      showToast({ type: 'warning', message: t('auth.passwordsMustMatch') });
       return;
     }
     
@@ -204,11 +203,7 @@ export default function ResetPasswordScreen() {
             } catch (rootError) {
               console.error('Root navigation also failed:', rootError);
               // Show success and let app redirect naturally
-      Alert.alert(
-        t('auth.passwordResetSuccess'),
-        t('auth.passwordResetSuccessMessage'),
-                [{ text: t('common.ok') }]
-              );
+              showToast({ type: 'success', message: t('auth.passwordResetSuccessMessage') });
             }
           }
         }
@@ -216,18 +211,14 @@ export default function ResetPasswordScreen() {
     } catch (error: any) {
       // Clear safety timeout on error
       clearTimeout(safetyTimeout);
-      
+
       hapticError();
       console.error('Password reset error:', error);
-      
+
       // Clear loading state immediately on error
       setLoading(false);
-      
-      Alert.alert(
-        t('errors.auth'),
-        error.message || t('auth.passwordResetFailed'),
-        [{ text: t('common.ok') }]
-      );
+
+      showToast({ type: 'error', message: error.message || t('auth.passwordResetFailed') });
     }
   };
   

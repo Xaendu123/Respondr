@@ -10,14 +10,66 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Card, Text } from '../components/ui';
+import { AnimatedAvatar, Button, Card, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 import { Activity } from '../types';
 import { formatDurationWithTranslation } from '../utils/formatDuration';
 import { hapticError, hapticHeavy, hapticLight, hapticSelect, hapticSuccess, hapticWarning } from '../utils/haptics';
+
+// ExpandableText component for truncating long text with "More..." option
+interface ExpandableTextProps {
+  text: string;
+  maxLength: number;
+  style?: any;
+  theme: ReturnType<typeof useTheme>['theme'];
+  t: (key: string) => string;
+}
+
+function ExpandableText({ text, maxLength, style, theme, t }: ExpandableTextProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const needsTruncation = text.length > maxLength;
+
+  const displayText = isExpanded || !needsTruncation
+    ? text
+    : text.slice(0, maxLength).trim() + '...';
+
+  return (
+    <View>
+      <Text variant="body" color="textSecondary" style={style}>
+        {displayText}
+        {needsTruncation && !isExpanded && (
+          <Text
+            variant="body"
+            style={{ color: theme.colors.primary, fontWeight: '600' }}
+            onPress={() => {
+              hapticLight();
+              setIsExpanded(true);
+            }}
+          >
+            {' '}{t('common.more')}
+          </Text>
+        )}
+      </Text>
+      {needsTruncation && isExpanded && (
+        <TouchableOpacity
+          onPress={() => {
+            hapticLight();
+            setIsExpanded(false);
+          }}
+          style={{ marginTop: 4 }}
+        >
+          <Text variant="caption" style={{ color: theme.colors.primary, fontWeight: '600' }}>
+            {t('common.showLess')}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
 
 export function LogbookScreen() {
   const { theme } = useTheme();
@@ -25,6 +77,7 @@ export function LogbookScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { activities, loading, refresh, deleteActivity } = useActivities('mine');
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,10 +196,10 @@ export function LogbookScreen() {
               hapticHeavy();
               await deleteActivity(activityId);
               hapticSuccess();
-              Alert.alert(t('common.success'), t('logbook.deleteSuccess'));
+              showToast({ type: 'success', message: t('logbook.deleteSuccess') });
             } catch (error) {
               hapticError();
-              Alert.alert(t('common.error'), t('logbook.deleteError'));
+              showToast({ type: 'error', message: t('logbook.deleteError') });
             }
           },
         },
@@ -175,13 +228,16 @@ export function LogbookScreen() {
   
   // Filter activities based on search and type
   const filteredActivities = activities.filter((activity) => {
-    const matchesSearch = searchQuery === '' || 
-      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.location?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = searchQuery === '' ||
+      activity.title.toLowerCase().includes(searchLower) ||
+      activity.description?.toLowerCase().includes(searchLower) ||
+      activity.situation?.toLowerCase().includes(searchLower) ||
+      activity.lessonsLearned?.toLowerCase().includes(searchLower) ||
+      activity.location?.toLowerCase().includes(searchLower);
+
     const matchesType = selectedTypeFilter === 'all' || activity.type === selectedTypeFilter;
-    
+
     return matchesSearch && matchesType;
   });
   
@@ -208,7 +264,21 @@ export function LogbookScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('logbook.title')}</Text>
+        <View style={styles.headerContent}>
+          <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('logbook.title')}</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={styles.profileButton}
+            activeOpacity={0.8}
+          >
+            <AnimatedAvatar
+              size={36}
+              name={user?.displayName || user?.firstName}
+              imageUrl={user?.avatar}
+              sharedTransitionTag="profile-avatar"
+            />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
       
       {/* Search and Filter */}
@@ -456,7 +526,46 @@ export function LogbookScreen() {
                   
                   {isExpanded && (
                     <>
-                      {activity.description && (
+                      {/* Situation Section */}
+                      {activity.situation && (
+                        <View style={styles.activityDetail}>
+                          <View style={styles.detailHeader}>
+                            <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
+                            <Text variant="label" color="primary" style={styles.detailLabel}>
+                              {t('activity.situation')}
+                            </Text>
+                          </View>
+                          <ExpandableText
+                            text={activity.situation}
+                            maxLength={150}
+                            style={styles.activityDescription}
+                            theme={theme}
+                            t={t}
+                          />
+                        </View>
+                      )}
+
+                      {/* Lessons Learned Section */}
+                      {activity.lessonsLearned && (
+                        <View style={styles.activityDetail}>
+                          <View style={styles.detailHeader}>
+                            <Ionicons name="bulb-outline" size={16} color={theme.colors.warning} />
+                            <Text variant="label" color="warning" style={styles.detailLabel}>
+                              {t('activity.lessonsLearned')}
+                            </Text>
+                          </View>
+                          <ExpandableText
+                            text={activity.lessonsLearned}
+                            maxLength={150}
+                            style={styles.activityDescription}
+                            theme={theme}
+                            t={t}
+                          />
+                        </View>
+                      )}
+
+                      {/* Legacy description fallback */}
+                      {activity.description && !activity.situation && !activity.lessonsLearned && (
                         <View style={styles.activityDetail}>
                           <Text variant="body" color="textSecondary" style={styles.activityDescription}>
                             {activity.description}
@@ -532,6 +641,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       paddingTop: 60, // Extra padding for status bar + spacing
       paddingBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.lg,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    profileButton: {
+      borderRadius: 18,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     searchFilterContainer: {
       paddingHorizontal: theme.spacing.md,
@@ -663,6 +782,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       paddingTop: theme.spacing.md,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border,
+    },
+    detailHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.xs,
+    },
+    detailLabel: {
+      fontWeight: '600',
+      fontSize: theme.typography.fontSize.sm,
     },
     activityDescription: {
       lineHeight: 20,

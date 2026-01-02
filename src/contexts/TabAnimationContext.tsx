@@ -1,49 +1,46 @@
 /**
  * TAB ANIMATION CONTEXT
- * 
+ *
  * Tracks tab navigation state to enable directional slide animations.
  * Provides current and previous tab indices to determine slide direction.
  */
 
 import { createContext, ReactNode, useContext, useRef, useState } from 'react';
 
-// Tab order mapping
+// Tab order mapping (left to right): Feed → Log → Logbook
 const TAB_ORDER: Record<string, number> = {
-  'logbook': 0,
-  'log': 1,
-  'feed': 2,
-  'profile': 3,
+  feed: 0,
+  log: 1,
+  logbook: 2,
 };
 
-const ANIMATION_DURATION = 400; // Must match or exceed animation duration
+const ANIMATION_DURATION = 300; // Animation duration in ms
 
 interface TabAnimationContextValue {
   currentTabIndex: number;
   previousTabIndex: number | null;
   setCurrentTab: (tabName: string) => void;
   getTabIndex: (tabName: string) => number;
+  getSlideDirection: (tabName: string) => 'left' | 'right' | null;
 }
 
 const TabAnimationContext = createContext<TabAnimationContextValue | undefined>(undefined);
 
 export function TabAnimationProvider({ children }: { children: ReactNode }) {
-  const [currentTabIndex, setCurrentTabIndex] = useState<number>(1); // Default to 'log'
+  const [currentTabIndex, setCurrentTabIndex] = useState<number>(0); // Default to 'feed'
   const [previousTabIndex, setPreviousTabIndex] = useState<number | null>(null);
   const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSetIndexRef = useRef<number>(1); // Track the last index we actually set
-  const isTransitioningRef = useRef<boolean>(false); // Prevent interruptions during transition
+  const lastSetIndexRef = useRef<number>(0);
+  const isTransitioningRef = useRef<boolean>(false);
 
   const setCurrentTab = (tabName: string) => {
-    const newIndex = TAB_ORDER[tabName] ?? 1;
-    console.log(`[Context] setCurrentTab: ${tabName} (${newIndex}), current: ${currentTabIndex}, previous: ${previousTabIndex}, lastSet: ${lastSetIndexRef.current}, isTransitioning: ${isTransitioningRef.current}`);
-    
-    // Ignore calls during an active transition
+    const newIndex = TAB_ORDER[tabName] ?? 0;
+
+    // Ignore calls during an active transition for the same tab
     if (isTransitioningRef.current && newIndex === lastSetIndexRef.current) {
-      console.log(`[Context] Ignoring redundant call during transition`);
       return;
     }
-    
-    // Check against the last index we set, not the current state (which may have already updated)
+
     if (newIndex !== lastSetIndexRef.current) {
       // Clear any pending timeout
       if (clearTimeoutRef.current) {
@@ -55,19 +52,15 @@ export function TabAnimationProvider({ children }: { children: ReactNode }) {
 
       // Set previous tab to the last active tab
       setPreviousTabIndex(lastSetIndexRef.current);
-      
+
       // Update current tab immediately
       setCurrentTabIndex(newIndex);
-      
-      // Update our tracking ref
+
+      // Update tracking ref
       lastSetIndexRef.current = newIndex;
 
       // Clear previous tab after animation completes
       clearTimeoutRef.current = setTimeout(() => {
-        console.log(`[Context] Clearing previousTabIndex after animation`);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/5580bc91-4b94-4dc0-ad56-07169103db0f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TabAnimationContext.tsx:66',message:'Clearing previousTabIndex in context',data:{previousTabIndex:lastSetIndexRef.current,currentTabIndex:newIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         setPreviousTabIndex(null);
         isTransitioningRef.current = false;
         clearTimeoutRef.current = null;
@@ -76,7 +69,30 @@ export function TabAnimationProvider({ children }: { children: ReactNode }) {
   };
 
   const getTabIndex = (tabName: string) => {
-    return TAB_ORDER[tabName] ?? 1;
+    return TAB_ORDER[tabName] ?? 0;
+  };
+
+  // Determine slide direction for a specific tab
+  const getSlideDirection = (tabName: string): 'left' | 'right' | null => {
+    if (previousTabIndex === null) return null;
+
+    const tabIndex = TAB_ORDER[tabName] ?? 0;
+
+    // If this tab is the current tab, determine how it should enter
+    if (tabIndex === currentTabIndex) {
+      // Current tab slides in from the direction of navigation
+      // If we navigated right (higher index), slide in from right
+      // If we navigated left (lower index), slide in from left
+      return currentTabIndex > previousTabIndex ? 'right' : 'left';
+    }
+
+    // If this tab is the previous tab, determine how it should exit
+    if (tabIndex === previousTabIndex) {
+      // Previous tab slides out in the opposite direction
+      return currentTabIndex > previousTabIndex ? 'left' : 'right';
+    }
+
+    return null;
   };
 
   return (
@@ -86,6 +102,7 @@ export function TabAnimationProvider({ children }: { children: ReactNode }) {
         previousTabIndex,
         setCurrentTab,
         getTabIndex,
+        getSlideDirection,
       }}
     >
       {children}

@@ -16,6 +16,8 @@ export interface CreateActivityInput {
   type: ActivityType;
   title: string;
   description?: string;
+  situation?: string;
+  lessonsLearned?: string;
   duration: number;
   date: Date;
   location?: string;
@@ -76,6 +78,8 @@ export function useActivities(filter: ActivityFilter = 'all') {
         type: input.type,
         title: input.title,
         description: input.description,
+        situation: input.situation,
+        lessonsLearned: input.lessonsLearned,
         duration: input.duration,
         date: input.date,
         location: input.location,
@@ -113,6 +117,8 @@ export function useActivities(filter: ActivityFilter = 'all') {
         type: updates.type,
         title: updates.title,
         description: updates.description,
+        situation: updates.situation,
+        lessonsLearned: updates.lessonsLearned,
         duration: updates.duration,
         date: updates.date,
         location: updates.location,

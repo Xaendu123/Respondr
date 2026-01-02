@@ -11,6 +11,8 @@ export interface CreateActivityData {
   type: ActivityType;
   title: string;
   description?: string;
+  situation?: string;
+  lessonsLearned?: string;
   duration: number;
   date: Date;
   location?: string;
@@ -121,6 +123,8 @@ export const createActivity = async (activityData: CreateActivityData): Promise<
       type: activityData.type,
       title: activityData.title,
       description: activityData.description,
+      situation: activityData.situation,
+      lessons_learned: activityData.lessonsLearned,
       duration: activityData.duration,
       date: activityData.date.toISOString(),
       location: activityData.location,
@@ -166,6 +170,8 @@ export const updateActivity = async (activityData: UpdateActivityData): Promise<
       type: activityData.type,
       title: activityData.title,
       description: activityData.description,
+      situation: activityData.situation,
+      lessons_learned: activityData.lessonsLearned,
       duration: activityData.duration,
       date: activityData.date?.toISOString(),
       location: activityData.location,
@@ -307,6 +313,8 @@ const mapActivityFromSupabase = (data: any): Activity => {
     type: data.type as ActivityType,
     title: data.title,
     description: data.description,
+    situation: data.situation,
+    lessonsLearned: data.lessons_learned,
     duration: data.duration,
     date: new Date(data.date),
     location: data.location,

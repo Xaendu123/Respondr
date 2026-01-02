@@ -17,11 +17,13 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useBrand } from '../providers/BrandProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 
 export function SettingsScreen() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, currentLanguage, changeLanguage } = useTranslation();
   const { refreshUser } = useAuth();
+  const { showToast } = useToast();
   const brand = useBrand();
   const router = useRouter();
   
@@ -56,7 +58,7 @@ export function SettingsScreen() {
             try {
               const { useAuth } = await import('../providers/AuthProvider');
               // Note: In a real implementation, you'd use the hook from component context
-              Alert.alert(t('common.success'), 'Logged out');
+              showToast({ type: 'success', message: t('settings.loggedOut') });
             } catch (error) {
               console.error('Logout error:', error);
             }
@@ -68,7 +70,7 @@ export function SettingsScreen() {
   
   const openLink = (url: string) => {
     Linking.openURL(url).catch(() => {
-      Alert.alert(t('errors.generic'), 'Could not open link');
+      showToast({ type: 'error', message: t('errors.couldNotOpenLink') });
     });
   };
   

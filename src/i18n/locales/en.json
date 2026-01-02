@@ -26,7 +26,9 @@
     "unknownUser": "Unknown User",
     "noDescription": "No description",
     "optional": "Optional",
-    "required": "Required"
+    "required": "Required",
+    "more": "More...",
+    "showLess": "Show less"
   },
   "home": {
     "title": "Home",
@@ -145,6 +147,12 @@
     "dateTime": "Date & Time",
     "report": "Report",
     "reportPlaceholder": "Description or report of the activity",
+    "situation": "Situation",
+    "situationHint": "Description of the situation",
+    "situationPlaceholder": "Describe the situation, what happened, and how you responded...",
+    "lessonsLearned": "Lessons Learned",
+    "lessonsLearnedHint": "What was learned for next time?",
+    "lessonsLearnedPlaceholder": "What did you learn? What would you do differently next time?",
     "town": "Town",
     "townPlaceholder": "e.g. Springfield",
     "street": "Street",

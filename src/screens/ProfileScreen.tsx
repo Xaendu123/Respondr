@@ -10,11 +10,12 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Button, Card, Text } from '../components/ui';
+import { AnimatedAvatar, Button, Card, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 import { resetPassword } from '../services/supabase/authService';
 import { formatDurationDetailed } from '../utils/formatDuration';
 
@@ -24,6 +25,7 @@ export function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { activities, refresh } = useActivities('mine');
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   
@@ -85,9 +87,9 @@ export function ProfileScreen() {
   
   const handlePasswordReset = async () => {
     if (!user?.email) {
-      Alert.alert(t('errors.generic'), t('errors.emailRequired'));
-        return;
-      }
+      showToast({ type: 'error', message: t('errors.emailRequired') });
+      return;
+    }
 
     Alert.alert(
       t('profile.resetPassword'),
@@ -99,13 +101,10 @@ export function ProfileScreen() {
           onPress: async () => {
             try {
               await resetPassword(user.email);
-            Alert.alert(t('common.success'), t('profile.resetPasswordSent'));
+              showToast({ type: 'success', message: t('profile.resetPasswordSent') });
             } catch (error: any) {
               console.error('Password reset error:', error);
-              Alert.alert(
-                t('errors.generic'),
-                error?.message || t('auth.resetPasswordFailed')
-              );
+              showToast({ type: 'error', message: error?.message || t('auth.resetPasswordFailed') });
             }
           },
         },
@@ -178,7 +177,7 @@ export function ProfileScreen() {
         >
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
-              <Avatar size={96} name={user.displayName} imageUrl={user.avatar} />
+              <AnimatedAvatar size={96} name={user.displayName} imageUrl={user.avatar} sharedTransitionTag="profile-avatar" />
             </View>
             <Text variant="headingLarge" style={[styles.name, { color: '#FFFFFF' }]}>{user.displayName}</Text>
             {user.bio && (

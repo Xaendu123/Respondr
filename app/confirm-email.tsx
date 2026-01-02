@@ -14,12 +14,14 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Touchabl
 import { Button, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { useToast } from '../src/providers/ToastProvider';
 import { resendConfirmationEmail } from '../src/services/supabase/authService';
 import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function ConfirmEmailScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = params.email || '';
@@ -75,7 +77,7 @@ export default function ConfirmEmailScreen() {
   const handleResendEmail = async () => {
     if (!email) {
       hapticError();
-      Alert.alert(t('errors.error'), t('auth.emailRequired'));
+      showToast({ type: 'error', message: t('auth.emailRequired') });
       return;
     }
     
@@ -91,12 +93,8 @@ export default function ConfirmEmailScreen() {
       
       // Start 60 second cooldown
       setResendCooldown(60);
-      
-      Alert.alert(
-        t('common.success'),
-        t('auth.confirmationEmailSent'),
-        [{ text: t('common.ok') }]
-      );
+
+      showToast({ type: 'success', message: t('auth.confirmationEmailSent') });
     } catch (error: any) {
       // Handle rate limiting gracefully
       if (error.code === 'RATE_LIMIT') {
@@ -104,15 +102,11 @@ export default function ConfirmEmailScreen() {
         const cooldown = error.cooldownSeconds || 60;
         setResendCooldown(cooldown);
         // Show friendly message instead of error
-        Alert.alert(
-          t('common.info'),
-          t('auth.resendConfirmationCooldown', { seconds: cooldown }),
-          [{ text: t('common.ok') }]
-        );
+        showToast({ type: 'info', message: t('auth.resendConfirmationCooldown', { seconds: cooldown }) });
       } else {
-      hapticError();
-      const errorMessage = error.message || t('auth.resendConfirmationFailed');
-      Alert.alert(t('errors.error'), errorMessage);
+        hapticError();
+        const errorMessage = error.message || t('auth.resendConfirmationFailed');
+        showToast({ type: 'error', message: errorMessage });
       }
     } finally {
       setIsResending(false);

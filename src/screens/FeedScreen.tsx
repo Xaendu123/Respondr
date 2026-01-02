@@ -6,17 +6,21 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Text } from '../components/ui';
+import { AnimatedAvatar, Card, Text } from '../components/ui';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 
 export function FeedScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  
+  const { user } = useAuth();
+  const router = useRouter();
+
   const styles = createStyles(theme);
   
   return (
@@ -29,7 +33,21 @@ export function FeedScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('feed.title')}</Text>
+        <View style={styles.headerContent}>
+          <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('feed.title')}</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={styles.profileButton}
+            activeOpacity={0.8}
+          >
+            <AnimatedAvatar
+              size={36}
+              name={user?.displayName || user?.firstName}
+              imageUrl={user?.avatar}
+              sharedTransitionTag="profile-avatar"
+            />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
       
       {/* Coming Soon Content */}
@@ -92,6 +110,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       paddingTop: 60, // Extra padding for status bar + spacing
       paddingBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.lg,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    profileButton: {
+      borderRadius: 18,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     content: {
       flex: 1,

@@ -14,12 +14,14 @@ import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { useToast } from '../src/providers/ToastProvider';
 import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function RegisterScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { register } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   
   const [firstName, setFirstName] = useState('');
@@ -63,40 +65,40 @@ export default function RegisterScreen() {
     if (!firstName.trim()) {
       hapticError();
       setFirstNameError(t('auth.firstNameRequired'));
-      Alert.alert(t('errors.validation'), t('auth.firstNameRequired'));
+      showToast({ type: 'warning', message: t('auth.firstNameRequired') });
       return;
     }
-    
+
     if (!lastName.trim()) {
       hapticError();
       setLastNameError(t('auth.lastNameRequired'));
-      Alert.alert(t('errors.validation'), t('auth.lastNameRequired'));
+      showToast({ type: 'warning', message: t('auth.lastNameRequired') });
       return;
     }
-    
+
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
+      showToast({ type: 'warning', message: t('auth.fillAllFields') });
       return;
     }
-    
+
     // Validate email only on submit
     if (!validateEmail(email.trim())) {
       hapticError();
       setEmailError(t('auth.invalidEmail'));
-      Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
+      showToast({ type: 'warning', message: t('auth.invalidEmail') });
       return;
     }
-    
+
     if (password !== confirmPassword) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.passwordsMustMatch'));
+      showToast({ type: 'warning', message: t('auth.passwordsMustMatch') });
       return;
     }
-    
+
     if (password.length < 6) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.passwordTooShort'));
+      showToast({ type: 'warning', message: t('auth.passwordTooShort') });
       return;
     }
     
@@ -135,7 +137,7 @@ export default function RegisterScreen() {
         setEmailError('');
       } else {
         setEmailError(errorMessage || t('auth.registrationFailed'));
-        Alert.alert(t('errors.auth'), errorMessage || t('auth.registrationFailed'));
+        showToast({ type: 'error', message: errorMessage || t('auth.registrationFailed') });
       }
     } finally {
       setIsRegistering(false);

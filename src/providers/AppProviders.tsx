@@ -15,6 +15,7 @@ import { AuthProvider } from './AuthProvider';
 import { BrandProvider } from './BrandProvider';
 import { I18nProvider } from './I18nProvider';
 import { ThemeProvider } from './ThemeProvider';
+import { ToastProvider } from './ToastProvider';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -25,11 +26,13 @@ export function AppProviders({ children, brandConfig }: AppProvidersProps) {
   return (
     <I18nProvider>
       <ThemeProvider>
-        <BrandProvider brandConfig={brandConfig}>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </BrandProvider>
+        <ToastProvider>
+          <BrandProvider brandConfig={brandConfig}>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </BrandProvider>
+        </ToastProvider>
       </ThemeProvider>
     </I18nProvider>
   );

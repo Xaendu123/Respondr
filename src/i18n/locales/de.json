@@ -25,7 +25,9 @@
     "unknownUser": "Unbekannter Benutzer",
     "noDescription": "Keine Beschreibung",
     "optional": "Optional",
-    "required": "Erforderlich"
+    "required": "Erforderlich",
+    "more": "Mehr...",
+    "showLess": "Weniger anzeigen"
   },
   "home": {
     "title": "Startseite",
@@ -136,6 +138,12 @@
     "dateTime": "Datum & Uhrzeit",
     "report": "Bericht",
     "reportPlaceholder": "Beschreibung oder Bericht der Aktivität",
+    "situation": "Situation",
+    "situationHint": "Beschreibung der Situation",
+    "situationPlaceholder": "Beschreibe die Situation, was passiert ist und wie du reagiert hast...",
+    "lessonsLearned": "Erkenntnisse",
+    "lessonsLearnedHint": "Was wurde für das nächste Mal gelernt?",
+    "lessonsLearnedPlaceholder": "Was hast du gelernt? Was würdest du beim nächsten Mal anders machen?",
     "town": "Ort",
     "townPlaceholder": "z.B. Musterstadt",
     "street": "Straße",

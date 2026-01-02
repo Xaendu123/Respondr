@@ -14,12 +14,14 @@ import { Input, Text } from '../src/components/ui';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useAuth } from '../src/providers/AuthProvider';
 import { useTheme } from '../src/providers/ThemeProvider';
+import { useToast } from '../src/providers/ToastProvider';
 import { hapticError, hapticLight, hapticSuccess } from '../src/utils/haptics';
 
 export default function LoginScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { login, isLoading } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   
   const [email, setEmail] = useState('');
@@ -48,15 +50,15 @@ export default function LoginScreen() {
     
     if (!email.trim() || !password.trim()) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.fillAllFields'));
+      showToast({ type: 'warning', message: t('auth.fillAllFields') });
       return;
     }
-    
+
     // Validate email only on submit
     if (!validateEmail(email.trim())) {
       hapticError();
       setEmailError(t('auth.invalidEmail'));
-      Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
+      showToast({ type: 'warning', message: t('auth.invalidEmail') });
       return;
     }
     
@@ -78,17 +80,14 @@ export default function LoginScreen() {
       }
       
       // Check if error is due to invalid credentials (user doesn't exist or wrong password)
-      if (error.code === 'INVALID_CREDENTIALS' || 
+      if (error.code === 'INVALID_CREDENTIALS' ||
           error.message?.includes('Invalid email or password') ||
           error.message?.includes('Invalid login credentials')) {
-        Alert.alert(
-          t('errors.auth'),
-          t('auth.invalidCredentials') || 'Invalid email or password. Please check your credentials and try again.'
-        );
+        showToast({ type: 'error', message: t('auth.invalidCredentials') || 'Invalid email or password. Please check your credentials and try again.' });
         return;
       }
-      
-      Alert.alert(t('errors.auth'), error.message || t('auth.loginFailed'));
+
+      showToast({ type: 'error', message: error.message || t('auth.loginFailed') });
     }
   };
   
@@ -120,25 +119,18 @@ export default function LoginScreen() {
     
     if (!validateEmail(email.trim())) {
       hapticError();
-      Alert.alert(t('errors.validation'), t('auth.invalidEmail'));
+      showToast({ type: 'warning', message: t('auth.invalidEmail') });
       return;
     }
-    
+
     try {
       const { resetPassword } = await import('../src/services/supabase/authService');
       await resetPassword(email.trim());
       hapticSuccess();
-      Alert.alert(
-        t('auth.passwordResetSent'),
-        t('auth.checkEmailForReset'),
-        [{ text: t('common.ok') }]
-      );
+      showToast({ type: 'success', message: t('auth.checkEmailForReset') });
     } catch (error: any) {
       hapticError();
-      Alert.alert(
-        t('errors.auth'),
-        error.message || t('auth.resetPasswordFailed')
-      );
+      showToast({ type: 'error', message: error.message || t('auth.resetPasswordFailed') });
     }
   };
   

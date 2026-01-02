@@ -41,6 +41,8 @@ export interface Activity {
   type: ActivityType;
   title: string;
   description?: string;
+  situation?: string; // Description of the situation
+  lessonsLearned?: string; // What was learned, consequences for next time
   duration: number; // in minutes
   date: Date;
   location?: string;

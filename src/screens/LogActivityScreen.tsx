@@ -10,14 +10,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, LayoutAnimation, Platform, StatusBar, StyleSheet, Switch, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, LayoutAnimation, Platform, StatusBar, StyleSheet, Switch, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Input, Select, Text, type SelectOption } from '../components/ui';
+import { AnimatedAvatar, Button, Input, Select, Text, type SelectOption } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 import { Activity, ActivityType, ActivityVisibility } from '../types';
 import { hapticSelect, hapticSuccess } from '../utils/haptics';
 
@@ -27,6 +28,7 @@ export function LogActivityScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const params = useLocalSearchParams<{ 
     activityId?: string;
@@ -86,7 +88,8 @@ export function LogActivityScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [durationValue, setDurationValue] = useState('');
   const [durationUnit, setDurationUnit] = useState<DurationUnit>('hours');
-  const [report, setReport] = useState('');
+  const [situation, setSituation] = useState('');
+  const [lessonsLearned, setLessonsLearned] = useState('');
   const [town, setTown] = useState('');
   const [street, setStreet] = useState('');
   const [visibility, setVisibility] = useState<ActivityVisibility>('public');
@@ -95,13 +98,11 @@ export function LogActivityScreen() {
   const [titleError, setTitleError] = useState('');
   const [durationError, setDurationError] = useState('');
   
-  // Expandable sections state
+  // Expandable sections state - all optional sections collapsed by default for cleaner UI
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    type: true, // Activity type always expanded
-    basicInfo: true, // Basic info expanded by default
-    timeDuration: false,
     location: false,
-    report: false,
+    situation: false,
+    lessonsLearned: false,
     visibility: false,
   });
   
@@ -115,7 +116,8 @@ export function LogActivityScreen() {
     setDate(new Date());
     setDurationValue('');
     setDurationUnit('hours');
-    setReport('');
+    setSituation('');
+    setLessonsLearned('');
     setTown('');
     setStreet('');
     setVisibility('public');
@@ -123,11 +125,9 @@ export function LogActivityScreen() {
     setDurationError('');
     
     setExpandedSections({
-      type: true,
-      basicInfo: true,
-      timeDuration: false,
       location: false,
-      report: false,
+      situation: false,
+      lessonsLearned: false,
       visibility: false,
     });
     
@@ -280,7 +280,8 @@ export function LogActivityScreen() {
       setTown('');
     }
     
-    setReport(selectedActivity.description || '');
+    setSituation(selectedActivity.situation || '');
+    setLessonsLearned(selectedActivity.lessonsLearned || '');
     setVisibility(selectedActivity.visibility);
     setCategory(selectedActivity.category?.trim() || '');
     setFalseAlarm(selectedActivity.falseAlarm || false);
@@ -334,12 +335,12 @@ export function LogActivityScreen() {
     }
     
     if (!user) {
-      Alert.alert(t('errors.auth'), t('errors.notAuthenticated'));
+      showToast({ type: 'error', message: t('errors.notAuthenticated') });
       return;
     }
-    
+
     if (formMode === 'edit' && !activityId) {
-      Alert.alert(t('errors.generic'), t('activity.editError'));
+      showToast({ type: 'error', message: t('activity.editError') });
       return;
     }
     
@@ -356,7 +357,8 @@ export function LogActivityScreen() {
         await updateActivity(activityId, {
           type,
           title,
-          description: report.trim() || undefined,
+          situation: situation.trim() || undefined,
+          lessonsLearned: lessonsLearned.trim() || undefined,
           duration: durationInMinutes,
           date,
           location,
@@ -366,26 +368,18 @@ export function LogActivityScreen() {
         });
         
         hapticSuccess();
-        
-        Alert.alert(
-          t('common.success'),
-          t('activity.updateSuccess'),
-          [
-            {
-              text: t('common.ok'),
-              onPress: () => {
-                // Reset form and navigate back to logbook
-                router.replace('/(tabs)/logbook');
-              },
-            },
-          ]
-        );
+        showToast({ type: 'success', message: t('activity.updateSuccess') });
+        // Navigate back to logbook after short delay
+        setTimeout(() => {
+          router.replace('/(tabs)/logbook');
+        }, 500);
       } else {
         // Create new activity
         await createActivity({
           type,
           title,
-          description: report.trim() || undefined,
+          situation: situation.trim() || undefined,
+          lessonsLearned: lessonsLearned.trim() || undefined,
           duration: durationInMinutes,
           date,
           location,
@@ -396,27 +390,16 @@ export function LogActivityScreen() {
         });
         
         hapticSuccess();
-        Alert.alert(
-          t('common.success'),
-          t('activity.saveSuccess'),
-          [
-            {
-              text: t('common.ok'),
-              onPress: () => {
-                // Reset form and navigate to logbook to see the new activity
-                resetForm();
-                router.push('/(tabs)/logbook');
-              },
-            },
-          ]
-        );
+        showToast({ type: 'success', message: t('activity.saveSuccess') });
+        // Reset form and navigate to logbook after short delay
+        setTimeout(() => {
+          resetForm();
+          router.push('/(tabs)/logbook');
+        }, 500);
       }
     } catch (error) {
       console.error('Failed to save activity:', error);
-      Alert.alert(
-        t('errors.generic'), 
-        formMode === 'edit' ? t('activity.updateError') : t('activity.saveError')
-      );
+      showToast({ type: 'error', message: formMode === 'edit' ? t('activity.updateError') : t('activity.saveError') });
     }
   };
   
@@ -448,148 +431,123 @@ export function LogActivityScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>
-          {formMode === 'edit' ? t('activity.edit') : t('activity.logNew')}
-        </Text>
+        <View style={styles.headerContent}>
+          <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>
+            {formMode === 'edit' ? t('activity.edit') : t('activity.logNew')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={styles.profileButton}
+            activeOpacity={0.8}
+          >
+            <AnimatedAvatar
+              size={36}
+              name={user?.displayName || user?.firstName}
+              imageUrl={user?.avatar}
+              sharedTransitionTag="profile-avatar"
+            />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
       
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAwareScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { 
-              flexGrow: 1,
-              paddingBottom: theme.spacing.lg + insets.bottom + 60 
-            }
-          ]}
-          enableOnAndroid
-          enableAutomaticScroll
-          keyboardShouldPersistTaps="handled"
-          extraScrollHeight={24}
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-          alwaysBounceVertical={true}
-        >
-            {/* Unified Form Container */}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            flexGrow: 1,
+            paddingBottom: theme.spacing.lg + insets.bottom + 100
+          }
+        ]}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        enableResetScrollToCoords={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        extraScrollHeight={Platform.OS === 'ios' ? 150 : 100}
+        extraHeight={Platform.OS === 'ios' ? 180 : 120}
+        keyboardOpeningTime={0}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => Keyboard.dismiss()}
+      >
+            {/* Simplified Form Container */}
             <View style={styles.unifiedFormContainer}>
-            {/* Basic Information - Required, Always Expanded */}
+
+            {/* Activity Type Selection - Compact */}
             <View style={[styles.unifiedSection, styles.firstSection]}>
-              <View style={styles.unifiedSectionHeader}>
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="document-text-outline" size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.sectionHeaderContent}>
-                  <View style={styles.sectionTitleRow}>
-                    <Text variant="headingMedium" style={[styles.sectionHeaderTitle, { flexShrink: 1 }]}>
-                      {t('activity.basicInfo')}
-                    </Text>
-                    <View style={styles.requiredBadge}>
-                      <Text variant="caption" style={styles.requiredBadgeText}>
-                        {t('common.required')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text variant="caption" color="textSecondary">
-                    {t('activity.titleLabel')}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.section}>
-                {/* Activity Type Selection */}
-                <View style={styles.fieldLabelContainer}>
-                  <Text variant="label" color="textSecondary" style={styles.fieldLabel}>
-                    {t('activity.type')}
-                  </Text>
-                </View>
-                <View style={styles.typeSelector}>
-                  {(['training', 'exercise', 'operation'] as ActivityType[]).map((activityType) => {
-                    const isSelected = type === activityType;
-                    const typeColor = getTypeColor(activityType);
-                    const typeLabel = activityType === 'training' 
-                      ? t('activity.typeTraining')
-                      : activityType === 'exercise'
-                      ? t('activity.typeExercise')
-                      : t('activity.typeOperation');
-                    
-                    return (
-                      <TouchableOpacity
-                        key={activityType}
-                        style={[
-                          styles.typeButton,
-                          isSelected && { 
-                            backgroundColor: typeColor, 
-                            borderColor: typeColor,
-                            shadowColor: typeColor,
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 8,
-                            elevation: 8,
-                          }
-                        ]}
-                        onPress={() => {
-                          hapticSelect();
-                          setType(activityType);
-                          // Clear street when switching to operation (privacy/security)
-                          if (activityType === 'operation') {
-                            setStreet('');
-                          } else {
-                            // Clear category when switching away from operation
-                            setCategory('');
-                          }
+              <View style={styles.typeSelector}>
+                {(['training', 'exercise', 'operation'] as ActivityType[]).map((activityType) => {
+                  const isSelected = type === activityType;
+                  const typeColor = getTypeColor(activityType);
+                  const typeLabel = activityType === 'training'
+                    ? t('activity.typeTraining')
+                    : activityType === 'exercise'
+                    ? t('activity.typeExercise')
+                    : t('activity.typeOperation');
+
+                  return (
+                    <TouchableOpacity
+                      key={activityType}
+                      style={[
+                        styles.typeButton,
+                        isSelected && {
+                          backgroundColor: typeColor,
+                          borderColor: typeColor,
+                        }
+                      ]}
+                      onPress={() => {
+                        hapticSelect();
+                        setType(activityType);
+                        if (activityType === 'operation') {
+                          setStreet('');
+                        } else {
+                          setCategory('');
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={getTypeIcon(activityType) as any}
+                        size={22}
+                        color={isSelected ? '#FFFFFF' : typeColor}
+                      />
+                      <Text
+                        variant="caption"
+                        style={{
+                          color: isSelected ? '#FFFFFF' : theme.colors.textPrimary,
+                          fontWeight: '600',
+                          marginTop: 4,
                         }}
-                        activeOpacity={0.7}
                       >
-                        <Ionicons
-                          name={getTypeIcon(activityType) as any}
-                          size={28}
-                          color={isSelected ? '#FFFFFF' : typeColor}
-                        />
-                        <Text
-                          variant="body"
-                          style={{ 
-                            color: isSelected ? '#FFFFFF' : theme.colors.textPrimary,
-                            fontWeight: '600',
-                            marginTop: theme.spacing.xxs,
-                            fontSize: theme.typography.fontSize.sm,
-                          }}
-                        >
-                          {typeLabel}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                
-                <View style={styles.divider} />
-                
-                <View style={styles.fieldLabelContainer}>
-                  <Text variant="label" color="textSecondary" style={styles.fieldLabel}>
-                    {t('activity.titleLabel')}
-                  </Text>
-                </View>
+                        {typeLabel}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Title - Required */}
+            <View style={styles.unifiedSection}>
               <Input
+                label={t('activity.titleLabel')}
                 value={title}
                 onChangeText={handleTitleChange}
                 placeholder={t('activity.titlePlaceholder')}
                 error={titleError}
                 autoFocus={false}
               />
-              
-              {/* Operation-specific fields */}
+
+              {/* Operation-specific: False Alarm & Category */}
               {type === 'operation' && (
                 <>
-                  <View style={styles.divider} />
                   <View style={styles.switchRow}>
                     <View style={styles.switchLabel}>
-                      <Ionicons name="alert-circle-outline" size={20} color={theme.colors.textSecondary} />
-                      <View style={styles.switchTextContainer}>
-                        <Text variant="body">{t('activity.falseAlarm')}</Text>
-                        <Text variant="caption" color="textSecondary" style={styles.switchHint}>
-                          {t('activity.falseAlarmHint')}
-                        </Text>
-                      </View>
+                      <Ionicons name="alert-circle-outline" size={18} color={theme.colors.textSecondary} />
+                      <Text variant="body" style={{ marginLeft: 8 }}>{t('activity.falseAlarm')}</Text>
                     </View>
                     <Switch
                       value={falseAlarm}
@@ -602,70 +560,20 @@ export function LogActivityScreen() {
                       ios_backgroundColor={theme.colors.border}
                     />
                   </View>
-                  
-                  {falseAlarm && (
-                    <View style={styles.infoBox}>
-                      <Ionicons name="information-circle-outline" size={18} color={theme.colors.info} />
-                      <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                        {t('activity.falseAlarmNote')}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {type === 'operation' ? (
-                    <Select
-                      label={t('activity.category')}
-                      value={category}
-                      onValueChange={(value) => {
-                        setCategory(value);
-                      }}
-                      options={operationCategoryOptions}
-                      placeholder={t('activity.categoryPlaceholder')}
-                    />
-                  ) : (
-                    <Input
-                      label={t('activity.category')}
-                      value={category}
-                      onChangeText={(value) => {
-                        setCategory(value);
-                      }}
-                      placeholder={t('activity.categoryPlaceholder')}
-                    />
-                  )}
+
+                  <Select
+                    label={t('activity.category')}
+                    value={category}
+                    onValueChange={setCategory}
+                    options={operationCategoryOptions}
+                    placeholder={t('activity.categoryPlaceholder')}
+                  />
                 </>
               )}
-              </View>
             </View>
-            
-            {/* Time & Duration - Required, Always Expanded */}
+
+            {/* Date, Time & Duration - Compact Row */}
             <View style={styles.unifiedSection}>
-              <View style={styles.unifiedSectionHeader}>
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.sectionHeaderContent}>
-                  <View style={styles.sectionTitleRow}>
-                    <Text variant="headingMedium" style={[styles.sectionHeaderTitle, { flexShrink: 1 }]}>
-                      {type === 'operation' ? t('activity.alarmTime') : t('activity.timeAndDuration')}
-                    </Text>
-                    <View style={styles.requiredBadge}>
-                      <Text variant="caption" style={styles.requiredBadgeText}>
-                        {t('common.required')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text variant="caption" color="textSecondary">
-                    {t('activity.date')}, {t('activity.time')} & {t('activity.duration')}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.section}>
-              <View style={styles.fieldLabelContainer}>
-                <Text variant="label" color="textSecondary" style={styles.fieldLabel}>
-                  {type === 'operation' ? t('activity.alarmTime') : t('activity.date')}
-                </Text>
-              </View>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity
                   style={styles.dateTimeButton}
@@ -675,12 +583,12 @@ export function LogActivityScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                  <Text variant="body">
+                  <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+                  <Text variant="body" style={{ marginLeft: 6 }}>
                     {date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.dateTimeButton}
                   onPress={() => {
@@ -689,13 +597,13 @@ export function LogActivityScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
-                  <Text variant="body">
+                  <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+                  <Text variant="body" style={{ marginLeft: 6 }}>
                     {date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {showDatePicker && (
                 <DateTimePicker
                   value={date}
@@ -703,13 +611,11 @@ export function LogActivityScreen() {
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(_event: any, selectedDate?: Date) => {
                     setShowDatePicker(false);
-                    if (selectedDate) {
-                      setDate(selectedDate);
-                    }
+                    if (selectedDate) setDate(selectedDate);
                   }}
                 />
               )}
-              
+
               {showTimePicker && (
                 <DateTimePicker
                   value={date}
@@ -717,32 +623,24 @@ export function LogActivityScreen() {
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(_event: any, selectedDate?: Date) => {
                     setShowTimePicker(false);
-                    if (selectedDate) {
-                      setDate(selectedDate);
-                    }
+                    if (selectedDate) setDate(selectedDate);
                   }}
                 />
               )}
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.fieldLabelContainer}>
-                <Text variant="label" color="textSecondary" style={styles.fieldLabel}>
-                  {t('activity.duration')}
-                </Text>
-              </View>
+
               <View style={styles.durationRow}>
                 <View style={styles.durationInputWrapper}>
                   <Input
+                    label={t('activity.duration')}
                     value={durationValue}
                     onChangeText={handleDurationChange}
                     placeholder="2"
                     keyboardType="numeric"
                     error={durationError}
-                    style={styles.durationInput}
                   />
                 </View>
                 <View style={styles.durationUnitWrapper}>
+                  <Text variant="label" color="textSecondary" style={{ marginBottom: 8 }}> </Text>
                   <View style={styles.unitButtons}>
                     {durationUnitOptions.map((unit) => (
                       <TouchableOpacity
@@ -769,193 +667,171 @@ export function LogActivityScreen() {
                   </View>
                 </View>
               </View>
-              </View>
             </View>
             
-            {/* Location (Optional) */}
-            <View style={styles.unifiedSection}>
-              <TouchableOpacity 
-                style={styles.expandableHeader}
+            {/* Optional Fields Section */}
+            <View style={styles.optionalSection}>
+              <Text variant="label" color="textSecondary" style={styles.optionalLabel}>
+                {t('common.optional')}
+              </Text>
+
+              {/* Location */}
+              <TouchableOpacity
+                style={styles.optionalRow}
                 onPress={() => toggleSection('location')}
                 activeOpacity={0.7}
               >
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="location-outline" size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.sectionHeaderContent}>
-                  <Text variant="headingMedium" style={styles.sectionHeaderTitle}>
-                    {t('activity.location')}
+                <Ionicons name="location-outline" size={20} color={theme.colors.textSecondary} />
+                <Text variant="body" style={styles.optionalRowText}>{t('activity.location')}</Text>
+                {(town || street) && (
+                  <Text variant="caption" color="textTertiary" numberOfLines={1} style={styles.optionalPreview}>
+                    {[street, town].filter(Boolean).join(', ')}
                   </Text>
-                </View>
-                <Ionicons 
-                  name={expandedSections.location ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={theme.colors.textSecondary} 
+                )}
+                <Ionicons
+                  name={expandedSections.location ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textTertiary}
                 />
               </TouchableOpacity>
-              
               {expandedSections.location && (
-                <View style={styles.section}>
+                <View style={styles.optionalContent}>
                   <Input
-                    label={t('activity.town')}
                     value={town}
                     onChangeText={setTown}
                     placeholder={t('activity.townPlaceholder')}
                   />
-                  
-                  {/* Only show street input if type is not "operation" */}
                   {type !== 'operation' && (
-                    <>
-                      <Input
-                        label={t('activity.street')}
-                        value={street}
-                        onChangeText={setStreet}
-                        placeholder={t('activity.streetPlaceholder')}
-                      />
-                      <View style={styles.fieldHint}>
-                        <Ionicons name="information-circle-outline" size={16} color={theme.colors.textTertiary} />
-                        <Text variant="caption" color="textTertiary" style={styles.hintText}>
-                          {t('activity.streetPrivacyHint')}
-                        </Text>
-                      </View>
-                    </>
+                    <Input
+                      value={street}
+                      onChangeText={setStreet}
+                      placeholder={t('activity.streetPlaceholder')}
+                    />
                   )}
                 </View>
               )}
-            </View>
-            
-            {/* Report (Optional) */}
-            <View style={styles.unifiedSection}>
-              <TouchableOpacity 
-                style={styles.expandableHeader}
-                onPress={() => toggleSection('report')}
+
+              {/* Situation */}
+              <TouchableOpacity
+                style={styles.optionalRow}
+                onPress={() => toggleSection('situation')}
                 activeOpacity={0.7}
               >
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="document-outline" size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.sectionHeaderContent}>
-                  <Text variant="headingMedium" style={styles.sectionHeaderTitle}>
-                    {t('activity.report')}
+                <Ionicons name="document-text-outline" size={20} color={theme.colors.textSecondary} />
+                <Text variant="body" style={styles.optionalRowText}>{t('activity.situation')}</Text>
+                {situation && (
+                  <Text variant="caption" color="textTertiary" numberOfLines={1} style={styles.optionalPreview}>
+                    {situation.substring(0, 30)}...
                   </Text>
-                  <Text variant="caption" color="textSecondary">
-                    {t('activity.details')}
-                  </Text>
-                </View>
-                <Ionicons 
-                  name={expandedSections.report ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={theme.colors.textSecondary} 
+                )}
+                <Ionicons
+                  name={expandedSections.situation ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textTertiary}
                 />
               </TouchableOpacity>
-              
-              {expandedSections.report && (
-                <View style={styles.section}>
-              <TextInput
-                value={report}
-                onChangeText={setReport}
-                placeholder={t('activity.reportPlaceholder')}
-                placeholderTextColor={theme.colors.textTertiary}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                style={[
-                  styles.reportTextInput,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                    color: theme.colors.textPrimary,
-                  }
-                ]}
-              />
-              <View style={styles.characterCount}>
-                <Text variant="caption" color="textTertiary">
-                  {report.length} {t('common.characters')}
-                </Text>
-              </View>
+              {expandedSections.situation && (
+                <View style={styles.optionalContent}>
+                  <TextInput
+                    value={situation}
+                    onChangeText={setSituation}
+                    placeholder={t('activity.situationPlaceholder')}
+                    placeholderTextColor={theme.colors.textTertiary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    style={[styles.textArea, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.textPrimary }]}
+                  />
                 </View>
               )}
-            </View>
-            
-            {/* Visibility */}
-            <View style={[styles.unifiedSection, styles.lastSection]}>
-              <TouchableOpacity 
-                style={styles.expandableHeader}
+
+              {/* Lessons Learned */}
+              <TouchableOpacity
+                style={styles.optionalRow}
+                onPress={() => toggleSection('lessonsLearned')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="bulb-outline" size={20} color={theme.colors.textSecondary} />
+                <Text variant="body" style={styles.optionalRowText}>{t('activity.lessonsLearned')}</Text>
+                {lessonsLearned && (
+                  <Text variant="caption" color="textTertiary" numberOfLines={1} style={styles.optionalPreview}>
+                    {lessonsLearned.substring(0, 30)}...
+                  </Text>
+                )}
+                <Ionicons
+                  name={expandedSections.lessonsLearned ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+              {expandedSections.lessonsLearned && (
+                <View style={styles.optionalContent}>
+                  <TextInput
+                    value={lessonsLearned}
+                    onChangeText={setLessonsLearned}
+                    placeholder={t('activity.lessonsLearnedPlaceholder')}
+                    placeholderTextColor={theme.colors.textTertiary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    style={[styles.textArea, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.textPrimary }]}
+                  />
+                </View>
+              )}
+
+              {/* Visibility */}
+              <TouchableOpacity
+                style={[styles.optionalRow, styles.lastOptionalRow]}
                 onPress={() => toggleSection('visibility')}
                 activeOpacity={0.7}
               >
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="eye-outline" size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.sectionHeaderContent}>
-                  <Text variant="headingMedium" style={styles.sectionHeaderTitle}>
-                    {t('activity.visibility')}
-                  </Text>
-                  <Text variant="caption" color="textSecondary">
-                    {t('activity.visibilityDescription')}
-                  </Text>
-                </View>
-                <Ionicons 
-                  name={expandedSections.visibility ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={theme.colors.textSecondary} 
+                <Ionicons name="eye-outline" size={20} color={theme.colors.textSecondary} />
+                <Text variant="body" style={styles.optionalRowText}>{t('activity.visibility')}</Text>
+                <Text variant="caption" color="primary" style={styles.optionalPreview}>
+                  {visibility === 'public' ? t('activity.visibilityPublic') :
+                   visibility === 'unit' ? t('activity.visibilityUnit') : t('activity.visibilityPrivate')}
+                </Text>
+                <Ionicons
+                  name={expandedSections.visibility ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textTertiary}
                 />
               </TouchableOpacity>
-              
               {expandedSections.visibility && (
-                <View style={styles.section}>
+                <View style={styles.optionalContent}>
                   <View style={styles.visibilityOptions}>
                     {[
-                      { value: 'public' as ActivityVisibility, label: t('activity.visibilityPublic'), icon: 'earth', description: t('activity.visibilityPublicDesc') },
-                      { value: 'unit' as ActivityVisibility, label: t('activity.visibilityUnit'), icon: 'people', description: t('activity.visibilityUnitDesc') },
-                      { value: 'private' as ActivityVisibility, label: t('activity.visibilityPrivate'), icon: 'lock-closed', description: t('activity.visibilityPrivateDesc') },
+                      { value: 'public' as ActivityVisibility, label: t('activity.visibilityPublic'), icon: 'earth' },
+                      { value: 'unit' as ActivityVisibility, label: t('activity.visibilityUnit'), icon: 'people' },
+                      { value: 'private' as ActivityVisibility, label: t('activity.visibilityPrivate'), icon: 'lock-closed' },
                     ].map((option) => (
                       <TouchableOpacity
                         key={option.value}
-                        style={styles.visibilityOption}
+                        style={[
+                          styles.visibilityChip,
+                          visibility === option.value && styles.visibilityChipActive,
+                        ]}
                         onPress={() => {
                           hapticSelect();
                           setVisibility(option.value);
                         }}
                         activeOpacity={0.7}
                       >
-                        <View
-                          style={[
-                            styles.visibilityOptionContent,
-                            visibility === option.value && {
-                              borderColor: theme.colors.primary,
-                              borderWidth: 2,
-                              backgroundColor: `${theme.colors.primary}15`,
-                            },
-                          ]}
+                        <Ionicons
+                          name={option.icon as any}
+                          size={16}
+                          color={visibility === option.value ? '#FFFFFF' : theme.colors.textSecondary}
+                        />
+                        <Text
+                          variant="caption"
+                          style={{
+                            marginLeft: 6,
+                            color: visibility === option.value ? '#FFFFFF' : theme.colors.textPrimary,
+                            fontWeight: '600',
+                          }}
                         >
-                          <Ionicons
-                            name={option.icon as any}
-                            size={24}
-                            color={visibility === option.value ? theme.colors.primary : theme.colors.textSecondary}
-                          />
-                          <Text
-                            variant="body"
-                            style={{
-                              marginTop: theme.spacing.xxs,
-                              color: visibility === option.value ? theme.colors.primary : theme.colors.textPrimary,
-                              fontWeight: visibility === option.value ? '600' : '500',
-                              fontSize: theme.typography.fontSize.sm,
-                            }}
-                          >
-                            {option.label}
-                          </Text>
-                          <Text
-                            variant="caption"
-                            style={{
-                              marginTop: 2,
-                              color: visibility === option.value ? theme.colors.textSecondary : theme.colors.textTertiary,
-                              textAlign: 'center',
-                            }}
-                          >
-                            {option.description}
-                          </Text>
-                        </View>
+                          {option.label}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -997,7 +873,6 @@ export function LogActivityScreen() {
               </Button>
             </View>
         </KeyboardAwareScrollView>
-      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -1009,20 +884,26 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       backgroundColor: theme.colors.background,
     },
     header: {
-      paddingTop: 60, // Extra padding for status bar + spacing
+      paddingTop: 60,
       paddingBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.lg,
     },
-    keyboardView: {
-      flex: 1,
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    profileButton: {
+      borderRadius: 18,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     scrollView: {
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: theme.spacing.md, // Horizontal padding for content
-      paddingTop: theme.spacing.md,
-      paddingBottom: 0, // Bottom padding handled by contentContainerStyle
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
     },
     unifiedFormContainer: {
       backgroundColor: theme.colors.glassBackground,
@@ -1030,102 +911,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderWidth: 1,
       borderColor: theme.colors.glassBorder,
       overflow: 'hidden',
-      marginTop: theme.spacing.lg,
     },
     unifiedSection: {
       backgroundColor: 'transparent',
-      padding: theme.spacing.lg,
+      padding: theme.spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },
     firstSection: {
-      borderTopLeftRadius: theme.borderRadius.xl,
-      borderTopRightRadius: theme.borderRadius.xl,
-    },
-    lastSection: {
-      borderBottomWidth: 0,
-      borderBottomLeftRadius: theme.borderRadius.xl,
-      borderBottomRightRadius: theme.borderRadius.xl,
-    },
-    expandableCard: {
-      marginBottom: theme.spacing.md, // Spacing between cards
-    },
-    firstSectionHeader: {
-      marginTop: theme.spacing.lg, // Less margin for first section
-    },
-    expandableHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingBottom: theme.spacing.md,
-      marginBottom: theme.spacing.sm,
-    },
-    unifiedSectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingBottom: theme.spacing.md,
-      marginBottom: theme.spacing.sm,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.xxl, // Increased for better section separation
-      marginBottom: theme.spacing.lg, // Increased to separate from section content
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-      paddingBottom: theme.spacing.md + theme.spacing.xs, // Extra padding for border
-      borderBottomWidth: 2, // Thicker border for better separation
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.backgroundSecondary, // Subtle background to make header stand out
-      borderRadius: theme.borderRadius.md,
-      marginHorizontal: -theme.spacing.md, // Extend to edges for better visual separation
-    },
-    sectionHeaderIcon: {
-      width: 28, // Reduced from 32
-      height: 28, // Reduced from 32
-      borderRadius: 14,
-      backgroundColor: `${theme.colors.primary}15`,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 1,
-    },
-    sectionHeaderContent: {
-      flex: 1,
-    },
-    sectionHeaderTitle: {
-      marginBottom: 1,
-    },
-    sectionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      marginBottom: 2,
-      flexWrap: 'wrap',
-    },
-    requiredBadge: {
-      backgroundColor: theme.colors.error,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.xxs,
-      borderRadius: theme.borderRadius.sm,
-      flexShrink: 0,
-    },
-    requiredBadgeText: {
-      color: '#FFFFFF',
-      fontWeight: '600',
-      fontSize: theme.typography.fontSize.xs,
-    },
-    optionalBadge: {
-      backgroundColor: theme.colors.textTertiary,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.xxs,
-      borderRadius: theme.borderRadius.sm,
-    },
-    optionalBadgeText: {
-      color: '#FFFFFF',
-      fontWeight: '600',
-      fontSize: theme.typography.fontSize.xs,
+      paddingTop: theme.spacing.md,
+      paddingBottom: theme.spacing.sm,
     },
     typeSelector: {
       flexDirection: 'row',
@@ -1135,82 +930,54 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: theme.spacing.md, // Reduced from lg
-      borderRadius: theme.borderRadius.lg, // Reduced from xl
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.borderRadius.md,
       borderWidth: 2,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surface,
-      minHeight: 80, // Reduced from 100, still meets 44px touch target
-    },
-    section: {
-      paddingTop: theme.spacing.md,
-      gap: theme.spacing.sm, // Keep compact but readable
-    },
-    divider: {
-      height: 1,
-      backgroundColor: theme.colors.border,
-      marginVertical: theme.spacing.sm, // Reduced from md
-    },
-    required: {
-      color: theme.colors.error,
-      fontWeight: '700',
-    },
-    fieldLabel: {
-      fontSize: theme.typography.fontSize.sm,
-      fontWeight: '600',
-      marginBottom: theme.spacing.xs, // Reduced from sm
-    },
-    fieldLabelContainer: {
-      marginBottom: theme.spacing.xxs, // Reduced from xs
+      minHeight: 60,
     },
     dateTimeRow: {
       flexDirection: 'row',
-      gap: theme.spacing.sm, // Reduced from md
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.md,
     },
     dateTimeButton: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: theme.spacing.xs, // Reduced from sm
-      paddingVertical: theme.spacing.sm, // Reduced from md
-      paddingHorizontal: theme.spacing.sm, // Reduced from md
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.sm,
       backgroundColor: theme.colors.backgroundSecondary,
       borderRadius: theme.borderRadius.md,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      minHeight: 44, // Ensure touch target meets accessibility standards
+      minHeight: 44,
     },
     durationRow: {
       flexDirection: 'row',
-      gap: theme.spacing.sm, // Reduced from md
-      alignItems: 'stretch', // Changed from flex-start to stretch for equal heights
+      gap: theme.spacing.sm,
+      alignItems: 'flex-start',
     },
     durationInputWrapper: {
       flex: 1,
-    },
-    durationInput: {
-      height: 44, // Fixed height to match unit buttons exactly
-      marginBottom: 0, // Remove default margin from Input component
     },
     durationUnitWrapper: {
       flex: 1,
     },
     unitButtons: {
       flexDirection: 'row',
-      gap: theme.spacing.xxs, // Reduced from xs
-      backgroundColor: theme.colors.surface, // Changed to match input background
-      borderRadius: theme.borderRadius.md, // Match input border radius
-      padding: 0, // Remove padding to match input exactly
-      borderWidth: 1, // Add border to match input
-      borderColor: theme.colors.border, // Match input border color
-      height: 44, // Fixed height to match input exactly
-      alignItems: 'stretch', // Ensure buttons stretch to container height
+      gap: 2,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      height: 44,
+      overflow: 'hidden',
     },
     unitButton: {
       flex: 1,
-      paddingVertical: theme.spacing.sm, // Match input paddingVertical (8px)
-      borderRadius: theme.borderRadius.sm, // Reduced from md
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -1221,33 +988,94 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       fontWeight: '600',
       fontSize: theme.typography.fontSize.xs,
     },
-    visibilityOptions: {
+    switchRow: {
       flexDirection: 'row',
-      gap: theme.spacing.sm, // Reduced from md
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
     },
-    visibilityOption: {
+    switchLabel: {
+      flexDirection: 'row',
+      alignItems: 'center',
       flex: 1,
     },
-    visibilityOptionContent: {
+    // Optional fields section
+    optionalSection: {
+      marginTop: theme.spacing.lg,
+    },
+    optionalLabel: {
+      marginBottom: theme.spacing.sm,
+      marginLeft: theme.spacing.xs,
+    },
+    optionalRow: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-start',
-      paddingVertical: theme.spacing.md, // Reduced from lg
-      paddingHorizontal: theme.spacing.xs, // Reduced from sm
+      backgroundColor: theme.colors.glassBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.glassBorder,
+      borderBottomWidth: 0,
+      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.md,
+    },
+    lastOptionalRow: {
+      borderBottomWidth: 1,
+      borderBottomLeftRadius: theme.borderRadius.lg,
+      borderBottomRightRadius: theme.borderRadius.lg,
+    },
+    optionalRowText: {
+      flex: 1,
+      marginLeft: theme.spacing.sm,
+    },
+    optionalPreview: {
+      maxWidth: '40%',
+      marginRight: theme.spacing.sm,
+    },
+    optionalContent: {
+      backgroundColor: theme.colors.surface,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: theme.colors.glassBorder,
+      padding: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    textArea: {
+      minHeight: 80,
+      padding: theme.spacing.sm,
+      borderWidth: 1,
+      borderRadius: theme.borderRadius.md,
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
+      textAlignVertical: 'top',
+    },
+    visibilityOptions: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+    },
+    visibilityChip: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.sm,
       borderRadius: theme.borderRadius.md,
       borderWidth: 1,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surface,
-      minHeight: 100, // Reduced from fixed 120, using minHeight for flexibility
-      width: '100%',
+    },
+    visibilityChipActive: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
     },
     saveButtonContainer: {
-      marginTop: theme.spacing.xxl, // Increased for better separation from last section
+      marginTop: theme.spacing.xl,
       marginBottom: theme.spacing.md,
     },
     saveButton: {
       paddingVertical: theme.spacing.md,
       borderRadius: theme.borderRadius.lg,
-      minHeight: 52, // Standard button height for better touch target
+      minHeight: 52,
     },
     buttonContent: {
       flexDirection: 'row',
@@ -1257,69 +1085,6 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     buttonText: {
       fontWeight: '600',
       fontSize: theme.typography.fontSize.base,
-    },
-    switchRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center', // Changed from flex-start for better alignment
-      paddingVertical: theme.spacing.xxs, // Reduced from xs
-      minHeight: 44, // Ensure touch target
-    },
-    switchLabel: {
-      flexDirection: 'row',
-      alignItems: 'center', // Changed from flex-start
-      gap: theme.spacing.xs, // Reduced from sm
-      flex: 1,
-    },
-    switchTextContainer: {
-      flex: 1,
-    },
-    switchHint: {
-      marginTop: 2, // Reduced from xxs spacing
-    },
-    infoBox: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.xs, // Reduced from sm
-      padding: theme.spacing.sm, // Reduced from md
-      backgroundColor: `${theme.colors.info}15`,
-      borderRadius: theme.borderRadius.md,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.colors.info,
-      marginTop: theme.spacing.xs,
-    },
-    infoText: {
-      flex: 1,
-      lineHeight: 18,
-    },
-    textArea: {
-      minHeight: 100, // Reduced from 120
-      paddingTop: theme.spacing.sm, // Reduced from md
-    },
-    reportTextInput: {
-      minHeight: 100, // Reduced from 120
-      paddingTop: theme.spacing.sm, // Reduced from md
-      paddingHorizontal: theme.spacing.sm, // Reduced from md
-      paddingVertical: theme.spacing.xs, // Reduced from sm
-      borderWidth: 1,
-      borderRadius: theme.borderRadius.md,
-      fontSize: theme.typography.fontSize.base,
-      fontFamily: theme.typography.fontFamily.regular,
-      marginBottom: theme.spacing.sm, // Unified spacing
-    },
-    characterCount: {
-      alignItems: 'flex-end',
-      marginTop: theme.spacing.xxs, // Reduced from xs
-    },
-    fieldHint: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.xxs, // Reduced from xs
-      marginTop: theme.spacing.xxs, // Reduced from xs
-    },
-    hintText: {
-      flex: 1,
-      lineHeight: 18,
     },
   });
 }

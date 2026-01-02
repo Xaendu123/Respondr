@@ -19,6 +19,7 @@ import { supabase } from '../config/supabase';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { useToast } from '../providers/ToastProvider';
 import { requestAccountDeletion, updatePrivacySettings } from '../services/supabase/authService';
 
 type VisibilityOption = 'public' | 'unit' | 'private';
@@ -27,6 +28,7 @@ export default function PrivacySettingsScreen() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const styles = createStyles(theme);
 
@@ -64,7 +66,7 @@ export default function PrivacySettingsScreen() {
       }
     } catch (error) {
       console.error('Error loading privacy settings:', error);
-      Alert.alert(t('errors.generic'), t('privacy.loadError'));
+      showToast({ type: 'error', message: t('privacy.loadError') });
     } finally {
       setLoading(false);
     }
@@ -117,11 +119,11 @@ export default function PrivacySettingsScreen() {
       }
 
       if (showSuccess) {
-      Alert.alert(t('common.success'), t('privacy.settingsSaved'));
+        showToast({ type: 'success', message: t('privacy.settingsSaved') });
       }
     } catch (error) {
       console.error('Error saving privacy settings:', error);
-      Alert.alert(t('errors.generic'), t('privacy.saveError'));
+      showToast({ type: 'error', message: t('privacy.saveError') });
     } finally {
       setSaving(false);
     }
@@ -197,11 +199,11 @@ export default function PrivacySettingsScreen() {
               if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(fileUri);
               } else {
-                Alert.alert(t('common.success'), t('privacy.exportSuccess'));
+                showToast({ type: 'success', message: t('privacy.exportSuccess') });
               }
             } catch (error) {
               console.error('Error exporting data:', error);
-              Alert.alert(t('errors.generic'), t('privacy.exportError'));
+              showToast({ type: 'error', message: t('privacy.exportError') });
             } finally {
               setExporting(false);
             }
@@ -249,7 +251,7 @@ export default function PrivacySettingsScreen() {
                       );
                     } catch (error) {
                       console.error('Error requesting account deletion:', error);
-                      Alert.alert(t('errors.generic'), t('privacy.deleteError'));
+                      showToast({ type: 'error', message: t('privacy.deleteError') });
                     } finally {
                       setDeleting(false);
                     }
