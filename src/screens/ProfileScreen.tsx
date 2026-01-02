@@ -10,8 +10,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedAvatar, Button, Card, Text } from '../components/ui';
+import { AnimatedAvatar, AnimatedCounter, Button, Card, SwipeableCards, Text } from '../components/ui';
 import { useActivities } from '../hooks/useActivities';
+import { useBadges } from '../hooks/useBadges';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
@@ -25,6 +26,7 @@ export function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { activities, refresh } = useActivities('mine');
+  const { earnedBadges, totalPoints, streak, refresh: refreshBadges } = useBadges();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -34,8 +36,9 @@ export function ProfileScreen() {
     useCallback(() => {
       if (user) {
         refresh();
+        refreshBadges();
       }
-    }, [refresh, user])
+    }, [refresh, refreshBadges, user])
   );
   
   // Calculate stats from activities
@@ -72,12 +75,24 @@ export function ProfileScreen() {
     }).length,
   };
   
+  // Get the highest earned badge as the current milestone
+  const currentMilestone = earnedBadges.length > 0 ? earnedBadges[earnedBadges.length - 1] : null;
+
+  // Translate badge name using translation key pattern
+  const getBadgeName = (badgeName: string): string => {
+    const translationKey = `badgeNames.${badgeName}`;
+    const translated = t(translationKey);
+    return translated === translationKey
+      ? badgeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : translated;
+  };
+
   const styles = createStyles(theme);
-  
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refresh();
+      await Promise.all([refresh(), refreshBadges()]);
     } catch (error) {
       console.error('Error refreshing profile:', error);
     } finally {
@@ -218,13 +233,234 @@ export function ProfileScreen() {
             </View>
           </View>
         </LinearGradient>
-        
+
+        {/* Swipeable Stats & Badges Section - Above User Info */}
+        <View style={styles.statsSection}>
+          <SwipeableCards style={styles.swipeableContainer}>
+            {/* Card 1: Statistics */}
+            <Card style={styles.swipeableCard} glass>
+              <ScrollView
+                style={styles.cardScrollView}
+                contentContainerStyle={styles.cardScrollContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+              >
+                <View style={styles.swipeableCardHeader}>
+                  <Ionicons name="stats-chart" size={20} color={theme.colors.primary} />
+                  <Text variant="label" color="textSecondary" style={styles.swipeableCardTitle}>
+                    {t('profile.statistics')}
+                  </Text>
+                </View>
+
+                {/* Main Stats Row */}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+                      <Ionicons name="list" size={24} color={theme.colors.primary} />
+                    </View>
+                    <AnimatedCounter
+                      value={stats.totalActivities}
+                      variant="headingLarge"
+                      duration={1000}
+                    />
+                    <Text variant="caption" color="textSecondary">
+                      {t('profile.totalActivities')}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconContainer, { backgroundColor: theme.colors.success + '15' }]}>
+                      <Ionicons name="time" size={24} color={theme.colors.success} />
+                    </View>
+                    <View style={styles.durationContainer}>
+                      {stats.durationBreakdown.days > 0 && (
+                        <View style={styles.durationItem}>
+                          <AnimatedCounter
+                            value={stats.durationBreakdown.days}
+                            variant="headingMedium"
+                            style={styles.durationValue}
+                            duration={1200}
+                          />
+                          <Text variant="caption" color="textSecondary">{t('profile.days')}</Text>
+                        </View>
+                      )}
+                      {stats.durationBreakdown.hours > 0 && (
+                        <View style={styles.durationItem}>
+                          <AnimatedCounter
+                            value={stats.durationBreakdown.hours}
+                            variant="headingMedium"
+                            style={styles.durationValue}
+                            duration={1200}
+                          />
+                          <Text variant="caption" color="textSecondary">{t('profile.hours')}</Text>
+                        </View>
+                      )}
+                      <View style={styles.durationItem}>
+                        <AnimatedCounter
+                          value={stats.durationBreakdown.minutes}
+                          variant="headingMedium"
+                          style={styles.durationValue}
+                          duration={1200}
+                        />
+                        <Text variant="caption" color="textSecondary">{t('profile.minutes')}</Text>
+                      </View>
+                    </View>
+                    <Text variant="caption" color="textSecondary">
+                      {t('profile.totalDuration')}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Activity Types */}
+                <View style={styles.typesSection}>
+                  <Text variant="caption" color="textSecondary" style={styles.typesSectionTitle}>
+                    {t('profile.byType')}
+                  </Text>
+                  <View style={styles.typeStatsGrid}>
+                    <View style={styles.typeStatCard}>
+                      <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.info + '15' }]}>
+                        <Ionicons name="book" size={18} color={theme.colors.info} />
+                      </View>
+                      <AnimatedCounter
+                        value={stats.activitiesByType.training}
+                        variant="headingMedium"
+                        style={{ color: theme.colors.info }}
+                        duration={800}
+                      />
+                      <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                        {t('activity.typeTraining')}
+                      </Text>
+                    </View>
+
+                    <View style={styles.typeStatCard}>
+                      <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
+                        <Ionicons name="fitness" size={18} color={theme.colors.warning} />
+                      </View>
+                      <AnimatedCounter
+                        value={stats.activitiesByType.exercise}
+                        variant="headingMedium"
+                        style={{ color: theme.colors.warning }}
+                        duration={800}
+                      />
+                      <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                        {t('activity.typeExercise')}
+                      </Text>
+                    </View>
+
+                    <View style={styles.typeStatCard}>
+                      <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.error + '15' }]}>
+                        <Ionicons name="flash" size={18} color={theme.colors.error} />
+                      </View>
+                      <AnimatedCounter
+                        value={stats.activitiesByType.operation}
+                        variant="headingMedium"
+                        style={{ color: theme.colors.error }}
+                        duration={800}
+                      />
+                      <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
+                        {t('activity.typeOperation')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+            </Card>
+
+            {/* Card 2: Badges & Achievements */}
+            <Card style={styles.swipeableCard} glass>
+              <ScrollView
+                style={styles.cardScrollView}
+                contentContainerStyle={styles.cardScrollContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+              >
+                <View style={styles.swipeableCardHeader}>
+                  <Ionicons name="ribbon" size={20} color={theme.colors.warning} />
+                  <Text variant="label" color="textSecondary" style={styles.swipeableCardTitle}>
+                    {t('badges.title')}
+                  </Text>
+                </View>
+
+                {/* Current Badge */}
+                <View style={styles.currentBadgeSection}>
+                  <View style={styles.badgeEmojiContainer}>
+                    <Text style={styles.badgeEmoji}>
+                      {currentMilestone?.icon || '🎯'}
+                    </Text>
+                  </View>
+                  <Text variant="headingMedium" style={styles.badgeName}>
+                    {currentMilestone ? getBadgeName(currentMilestone.name) : t('milestones.first.title')}
+                  </Text>
+                  <Text variant="body" color="textSecondary" style={styles.badgeDescription}>
+                    {currentMilestone?.description || t('milestones.first.message')}
+                  </Text>
+                </View>
+
+                {/* Badge Stats */}
+                <View style={styles.badgeStatsRow}>
+                  <View style={styles.badgeStatItem}>
+                    <AnimatedCounter
+                      value={earnedBadges.length}
+                      variant="headingLarge"
+                      style={{ color: theme.colors.primary }}
+                      duration={1000}
+                    />
+                    <Text variant="caption" color="textSecondary">
+                      {t('badges.earned')}
+                    </Text>
+                  </View>
+
+                  <View style={styles.badgeStatItem}>
+                    <AnimatedCounter
+                      value={totalPoints}
+                      variant="headingLarge"
+                      style={{ color: theme.colors.success }}
+                      duration={1000}
+                    />
+                    <Text variant="caption" color="textSecondary">
+                      {t('badges.progress')}
+                    </Text>
+                  </View>
+
+                  {streak && streak.currentStreak > 0 && (
+                    <View style={styles.badgeStatItem}>
+                      <View style={styles.streakContainer}>
+                        <Ionicons name="flame" size={20} color={theme.colors.warning} />
+                        <AnimatedCounter
+                          value={streak.currentStreak}
+                          variant="headingLarge"
+                          style={{ color: theme.colors.warning }}
+                          duration={1000}
+                        />
+                      </View>
+                      <Text variant="caption" color="textSecondary">
+                        {t('profile.streak')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* View All Badges Button */}
+                <TouchableOpacity
+                  style={styles.viewBadgesButton}
+                  onPress={() => router.push('/badges')}
+                >
+                  <Text variant="body" style={{ color: theme.colors.primary }}>
+                    {t('profile.viewAllBadges')}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </ScrollView>
+            </Card>
+          </SwipeableCards>
+        </View>
+
         {/* Profile Information */}
         <Card style={styles.infoCard} glass>
           <Text variant="headingMedium" style={styles.sectionTitle}>
             {t('profile.information')}
           </Text>
-          
+
           {(user.firstName || user.lastName) && (
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />
@@ -236,7 +472,7 @@ export function ProfileScreen() {
               </View>
             </View>
           )}
-          
+
           {user.organization && (
             <View style={styles.infoRow}>
               <Ionicons name="business-outline" size={20} color={theme.colors.textSecondary} />
@@ -246,7 +482,7 @@ export function ProfileScreen() {
               </View>
             </View>
           )}
-          
+
           {user.rank && (
             <View style={styles.infoRow}>
               <Ionicons name="ribbon-outline" size={20} color={theme.colors.textSecondary} />
@@ -256,7 +492,7 @@ export function ProfileScreen() {
               </View>
             </View>
           )}
-          
+
           {user.location && (
             <View style={styles.infoRow}>
               <Ionicons name="location-outline" size={20} color={theme.colors.textSecondary} />
@@ -266,7 +502,7 @@ export function ProfileScreen() {
               </View>
             </View>
           )}
-          
+
           <View style={styles.infoRow}>
             <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
             <View style={styles.infoContent}>
@@ -275,115 +511,6 @@ export function ProfileScreen() {
             </View>
           </View>
         </Card>
-        
-        {/* Stats Section */}
-        <View style={styles.statsSection}>
-          <Text variant="headingMedium" style={styles.statsSectionTitle}>
-            {t('profile.statistics')}
-          </Text>
-          
-          {/* Main Stats Grid */}
-          <View style={styles.mainStatsGrid}>
-            <Card style={styles.mainStatCard} glass>
-              <View style={styles.mainStatContent}>
-                <View style={[styles.statIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
-                  <Ionicons name="list" size={28} color={theme.colors.primary} />
-                </View>
-                <Text variant="headingLarge" style={styles.mainStatValue}>
-                  {stats.totalActivities}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={styles.mainStatLabel}>
-                  {t('profile.totalActivities')}
-                </Text>
-              </View>
-            </Card>
-            
-            <Card style={styles.mainStatCard} glass>
-              <View style={styles.mainStatContent}>
-                <View style={[styles.statIconContainer, { backgroundColor: theme.colors.success + '15' }]}>
-                  <Ionicons name="time" size={28} color={theme.colors.success} />
-                </View>
-                <View style={styles.durationMainContainer}>
-                  {stats.durationBreakdown.days > 0 && (
-                    <View style={styles.durationMainItem}>
-                      <Text variant="headingLarge" style={styles.durationMainValue}>
-                        {stats.durationBreakdown.days}
-                      </Text>
-                      <Text variant="caption" color="textSecondary">
-                        {t('profile.days')}
-                      </Text>
-                    </View>
-                  )}
-                  {stats.durationBreakdown.hours > 0 && (
-                    <View style={styles.durationMainItem}>
-                      <Text variant="headingLarge" style={styles.durationMainValue}>
-                        {stats.durationBreakdown.hours}
-                      </Text>
-                      <Text variant="caption" color="textSecondary">
-                        {t('profile.hours')}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.durationMainItem}>
-                    <Text variant="headingLarge" style={styles.durationMainValue}>
-                      {stats.durationBreakdown.minutes}
-                    </Text>
-                    <Text variant="caption" color="textSecondary">
-                      {t('profile.minutes')}
-                    </Text>
-                  </View>
-                </View>
-                <Text variant="caption" color="textSecondary" style={styles.mainStatLabel}>
-                  {t('profile.totalDuration')}
-                </Text>
-              </View>
-            </Card>
-          </View>
-          
-          {/* Activity Types Section */}
-          <Card style={styles.typeStatsCard} glass>
-            <Text variant="label" color="textSecondary" style={styles.typeStatsTitle}>
-              {t('profile.byType')}
-            </Text>
-            <View style={styles.typeStatsGrid}>
-              <View style={styles.typeStatCard}>
-                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.info + '15' }]}>
-                  <Ionicons name="book" size={20} color={theme.colors.info} />
-                </View>
-                <Text variant="headingMedium" style={{ color: theme.colors.info }}>
-                  {stats.activitiesByType.training}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
-                  {t('activity.typeTraining')}
-                </Text>
-              </View>
-              
-              <View style={styles.typeStatCard}>
-                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
-                  <Ionicons name="fitness" size={20} color={theme.colors.warning} />
-                </View>
-                <Text variant="headingMedium" style={{ color: theme.colors.warning }}>
-                  {stats.activitiesByType.exercise}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
-                  {t('activity.typeExercise')}
-                </Text>
-              </View>
-              
-              <View style={styles.typeStatCard}>
-                <View style={[styles.typeStatIconContainer, { backgroundColor: theme.colors.error + '15' }]}>
-                  <Ionicons name="flash" size={20} color={theme.colors.error} />
-                </View>
-                <Text variant="headingMedium" style={{ color: theme.colors.error }}>
-                  {stats.activitiesByType.operation}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={styles.typeStatLabel}>
-                  {t('activity.typeOperation')}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        </View>
         
         {/* Settings & Actions Section */}
         <View style={styles.settingsSection}>
@@ -546,80 +673,146 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       marginBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.xs,
     },
-    mainStatsGrid: {
-      flexDirection: 'row',
-      gap: theme.spacing.md,
-      marginBottom: theme.spacing.lg,
+    // Swipeable cards styles
+    swipeableContainer: {
+      // Container fills parent width, cards match other cards in the screen
     },
-    mainStatCard: {
-      flex: 1,
+    swipeableCard: {
       padding: theme.spacing.lg,
+      height: 380,
     },
-    mainStatContent: {
+    cardScrollView: {
+      flex: 1,
+      marginHorizontal: -theme.spacing.lg,
+      paddingHorizontal: theme.spacing.lg,
+    },
+    cardScrollContent: {
+      paddingBottom: theme.spacing.sm,
+    },
+    swipeableCardHeader: {
+      flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
+      marginBottom: theme.spacing.lg,
+    },
+    swipeableCardTitle: {
+      fontSize: theme.typography.fontSize.sm,
+      fontWeight: theme.typography.fontWeight.semibold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: theme.spacing.lg,
+    },
+    statItem: {
+      alignItems: 'center',
+      gap: theme.spacing.xs,
     },
     statIconContainer: {
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       borderRadius: theme.borderRadius.xl,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: theme.spacing.xs,
     },
-    mainStatValue: {
-      textAlign: 'center',
-    },
-    mainStatLabel: {
-      textAlign: 'center',
-      marginTop: theme.spacing.xs,
-    },
-    durationMainContainer: {
+    durationContainer: {
       flexDirection: 'row',
-      gap: theme.spacing.md,
+      gap: theme.spacing.sm,
       alignItems: 'center',
-      justifyContent: 'center',
-      marginVertical: theme.spacing.xs,
     },
-    durationMainItem: {
+    durationItem: {
       alignItems: 'center',
-      gap: theme.spacing.xxs,
     },
-    durationMainValue: {
+    durationValue: {
       color: theme.colors.success,
-      textAlign: 'center',
     },
-    typeStatsCard: {
-      padding: theme.spacing.lg,
+    typesSection: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: theme.spacing.md,
     },
-    typeStatsTitle: {
+    typesSectionTitle: {
       marginBottom: theme.spacing.md,
-      fontSize: theme.typography.fontSize.sm,
+      fontSize: theme.typography.fontSize.xs,
       fontWeight: theme.typography.fontWeight.semibold,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
     typeStatsGrid: {
       flexDirection: 'row',
-      gap: theme.spacing.md,
+      gap: theme.spacing.sm,
     },
     typeStatCard: {
       flex: 1,
       alignItems: 'center',
-      gap: theme.spacing.xs,
-      paddingVertical: theme.spacing.sm,
+      gap: theme.spacing.xxs,
     },
     typeStatIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.borderRadius.lg,
+      width: 36,
+      height: 36,
+      borderRadius: theme.borderRadius.md,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: theme.spacing.xs,
     },
     typeStatLabel: {
       textAlign: 'center',
       fontSize: theme.typography.fontSize.xs,
+    },
+    // Badge card styles
+    currentBadgeSection: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+    },
+    badgeEmojiContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.warning + '15',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    badgeEmoji: {
+      fontSize: 40,
+      lineHeight: 48,
+      textAlign: 'center',
+    },
+    badgeName: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.xs,
+    },
+    badgeDescription: {
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    badgeStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      marginBottom: theme.spacing.md,
+    },
+    badgeStatItem: {
+      alignItems: 'center',
+      gap: theme.spacing.xxs,
+    },
+    streakContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xxs,
+    },
+    viewBadgesButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.xs,
+      paddingVertical: theme.spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
     },
     actionsCard: {
       padding: 0,

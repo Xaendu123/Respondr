@@ -87,7 +87,7 @@ function TabsContent() {
       <Tabs.Screen
         name="profile"
         options={{
-          href: null, // Hide from tab bar but keep route accessible
+          href: null,
         }}
       />
     </Tabs>

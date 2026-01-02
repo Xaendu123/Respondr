@@ -27,62 +27,64 @@ export function useTranslation() {
  */
 export function useTranslationSafe() {
   // Always call the hook (React requirement)
-  let translationResult: ReturnType<typeof useI18nTranslation>;
-  
+  let originalT: ((key: string, options?: any) => any) | null = null;
+  let i18nInstance: typeof i18n | null = null;
+
   try {
-    translationResult = useI18nTranslation();
-  } catch (error) {
-    // If hook throws, create a fallback result
-    translationResult = {
-      t: (key: string) => key,
-      i18n: i18n as any,
-    };
+    const result = useI18nTranslation();
+    originalT = result.t;
+    i18nInstance = result.i18n;
+  } catch {
+    // If hook throws, we'll use fallbacks
+    i18nInstance = i18n;
   }
-  
-  const { t: originalT, i18n: i18nInstance } = translationResult;
-  
-  // Check if we have a valid translation function
-  const hasValidT = originalT && typeof originalT === 'function';
-  const hasValidI18n = i18nInstance && 
-                       (i18nInstance.isInitialized !== false) && 
+
+  // Check if we have a valid i18n instance
+  const hasValidI18n = i18nInstance &&
+                       (i18nInstance.isInitialized !== false) &&
                        typeof i18nInstance.language === 'string';
-  
+
   // Create a safe translation function
   const safeT = (key: string, options?: any): string => {
     // Try to use the hook's translation function first
-    if (hasValidT) {
+    if (originalT && typeof originalT === 'function') {
       try {
         const result = originalT(key, options);
         // i18next returns the key if translation not found, which is fine
-        return result || key;
-      } catch (err) {
-        // Translation function threw an error
-        console.warn('Translation function error:', err);
+        // Ensure we always return a string
+        if (typeof result === 'string') return result;
+        if (result) return String(result);
+        return key;
+      } catch {
+        // Translation function threw an error, fall through to fallback
       }
     }
-    
+
     // Fallback: try to use i18n directly
     if (i18n && i18n.isInitialized && typeof i18n.t === 'function') {
       try {
         const result = i18n.t(key, options);
-        return result || key;
-      } catch (err) {
+        // Ensure we always return a string
+        if (typeof result === 'string') return result;
+        if (result) return String(result);
+        return key;
+      } catch {
         // i18n.t also failed
       }
     }
-    
+
     // Ultimate fallback: return the key
     return key;
   };
-  
+
   return {
     t: safeT,
-    currentLanguage: (hasValidI18n ? i18nInstance.language : i18n?.language) || 'en',
+    currentLanguage: (hasValidI18n && i18nInstance ? i18nInstance.language : i18n?.language) || 'en',
     changeLanguage: async (lang: string) => {
       try {
         await changeLanguage(lang);
-      } catch (err) {
-        console.warn('Failed to change language:', err);
+      } catch {
+        // Failed to change language, silently ignore
       }
     },
   };

@@ -10,10 +10,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "deploymentTarget": "15.4",
       "bundleIdentifier": "ch.respondr.app",
       "buildNumber": "1",
-      "usesNonExemptEncryption": false,
       "associatedDomains": [
         "webcredentials:respondr.ch"
       ],
@@ -93,10 +91,7 @@
         "READ_MEDIA_IMAGES"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "minSdkVersion": 23
+      "predictiveBackGestureEnabled": false
     },
     "plugins": [
       "expo-router",

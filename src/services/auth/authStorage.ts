@@ -72,13 +72,4 @@ export async function clearAuthData(): Promise<void> {
   ]);
 }
 
-/**
- * Refresh authentication token
- * This will be implemented by the auth service
- */
-export async function refreshAuthToken(): Promise<boolean> {
-  // Import dynamically to avoid circular dependency
-  const { authService } = await import('./authService');
-  return authService.refreshToken();
-}
 

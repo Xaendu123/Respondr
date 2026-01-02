@@ -1,38 +1,57 @@
 /**
  * THEMED BUTTON COMPONENT
- * 
- * Button component using theme tokens.
- * 
+ *
+ * Button component using theme tokens with satisfying press animation.
+ *
  * Usage:
  * <Button variant="primary" onPress={handlePress}>Save</Button>
  * <Button variant="secondary" onPress={handlePress}>Cancel</Button>
  */
 
-import React from 'react';
-import { ActivityIndicator, TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { hapticLight } from '../../utils/haptics';
 import { Text, TextColor } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
-export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
+export interface ButtonProps extends Omit<PressableProps, 'style'> {
   variant?: ButtonVariant;
   loading?: boolean;
   children: React.ReactNode;
-  style?: TouchableOpacityProps['style'];
+  style?: StyleProp<ViewStyle>;
 }
 
-export function Button({ 
+export function Button({
   variant = 'primary',
   loading = false,
   disabled,
   children,
   style,
-  ...props 
+  ...props
 }: ButtonProps) {
   const { theme } = useTheme();
-  
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const animateIn = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  }, [scaleAnim]);
+
+  const animateOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  }, [scaleAnim]);
+
   const getButtonStyle = () => {
     const baseStyle = {
       paddingVertical: theme.spacing.md,
@@ -95,33 +114,49 @@ export function Button({
     }
   };
   
-  const handlePress = (e: any) => {
+  const handlePressIn = useCallback(() => {
     if (!disabled && !loading) {
-      hapticLight();
+      animateIn();
     }
-    if (props.onPress) {
-      props.onPress(e);
-    }
-  };
+  }, [disabled, loading, animateIn]);
+
+  const handlePressOut = useCallback(() => {
+    animateOut();
+  }, [animateOut]);
+
+  const handlePress = useCallback(
+    (e: any) => {
+      if (!disabled && !loading) {
+        hapticLight();
+      }
+      if (props.onPress) {
+        props.onPress(e);
+      }
+    },
+    [disabled, loading, props.onPress]
+  );
 
   return (
-    <TouchableOpacity
-      style={[getButtonStyle(), style]}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
-      {...props}
-      onPress={handlePress}
-    >
-      {loading ? (
-        <ActivityIndicator 
-          color={variant === 'primary' ? theme.colors.textInverse : theme.colors.textPrimary} 
-        />
-      ) : (
-        <Text variant="label" color={getTextColor()}>
-          {children}
-        </Text>
-      )}
-    </TouchableOpacity>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        style={[getButtonStyle(), style]}
+        disabled={disabled || loading}
+        {...props}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+      >
+        {loading ? (
+          <ActivityIndicator
+            color={variant === 'primary' ? theme.colors.textInverse : theme.colors.textPrimary}
+          />
+        ) : (
+          <Text variant="label" color={getTextColor()}>
+            {children}
+          </Text>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 

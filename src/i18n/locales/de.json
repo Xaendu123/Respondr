@@ -94,6 +94,7 @@
     "galleryPermissionRequired": "Bitte erlaube den Zugriff auf deine Galerie",
     "cameraPermissionRequired": "Bitte erlaube den Zugriff auf deine Kamera",
     "save": "Aktivität speichern",
+    "update": "Aktivität aktualisieren",
     "delete": "Aktivität löschen",
     "deleteConfirm": "Möchtest du diese Aktivität wirklich löschen?",
     "created": "Erstellt",
@@ -295,7 +296,7 @@
     "welcomeBack": "Willkommen zurück",
     "createAccount": "Konto erstellen",
     "joinCommunity": "Werde Teil unserer Community",
-    "tagline": "Helden verbinden",
+    "tagline": "Connecting heroes",
     "noAccount": "Noch kein Konto?",
     "alreadyHaveAccount": "Bereits ein Konto?",
     "fillAllFields": "Bitte fülle alle Felder aus",
@@ -397,6 +398,142 @@
     "changeAnytime": "Du kannst diese Einstellungen jederzeit in den Datenschutz-Einstellungen ändern.",
     "acceptAndContinue": "Akzeptieren & fortfahren",
     "decline": "Ablehnen"
+  },
+  "greetings": {
+    "earlyMorning": "Früher Vogel",
+    "morning": "Guten Morgen",
+    "afternoon": "Guten Tag",
+    "evening": "Guten Abend",
+    "night": "Lange Nacht?",
+    "weekend": "Schönes Wochenende",
+    "monday": "Gut in die Woche",
+    "friday": "Fast geschafft",
+    "motivation": {
+      "earlyMorning": "Früh dabei, immer bereit",
+      "morning": "Bereit, etwas zu bewegen",
+      "afternoon": "Weiter so",
+      "evening": "Noch ein Tag im Dienst",
+      "night": "Danke, dass du da bist"
+    }
+  },
+  "success": {
+    "activityLogged": "Aktivität geloggt!",
+    "keepItUp": "Weiter so",
+    "heroWork": "Dein Einsatz inspiriert andere",
+    "documented": "Ein weiterer Moment des Dienstes festgehalten",
+    "badgeEarned": "Auszeichnung freigeschaltet!",
+    "keepEarning": "Du bist auf Erfolgskurs! Weiter so!"
+  },
+  "milestones": {
+    "first": {
+      "title": "Erster Schritt!",
+      "message": "Jede Heldenreise beginnt hier"
+    },
+    "five": {
+      "title": "Guter Start!",
+      "message": "Du baust Momentum auf"
+    },
+    "ten": {
+      "title": "Engagiert!",
+      "message": "Dein Engagement zeigt sich"
+    },
+    "twentyFive": {
+      "title": "Engagierter Held!",
+      "message": "25 Aktivitäten geloggt. Beeindruckend!"
+    },
+    "fifty": {
+      "title": "Veteran!",
+      "message": "50 Aktivitäten! Du bist eine Inspiration"
+    },
+    "hundred": {
+      "title": "Wahrer Held!",
+      "message": "100 Aktivitäten. Dein Dienst zählt"
+    },
+    "twoFifty": {
+      "title": "Legende!",
+      "message": "250 Aktivitäten. Außergewöhnliches Engagement"
+    },
+    "fiveHundred": {
+      "title": "Elite!",
+      "message": "500 Aktivitäten. Du bist einzigartig"
+    },
+    "thousand": {
+      "title": "Legendär!",
+      "message": "1000 Aktivitäten. Eine wahre Legende"
+    },
+    "progress": "Noch {{count}} bis zum nächsten Meilenstein",
+    "reached": "Meilenstein erreicht!"
+  },
+  "encouragement": {
+    "training": {
+      "first": "Starte deine Lernreise",
+      "starting": "Dein Wissen wächst",
+      "growing": "Deine Fähigkeiten erweitern sich",
+      "expert": "Ein wahrer Experte in Ausbildung"
+    },
+    "exercise": {
+      "first": "Bereit zum Training?",
+      "starting": "Immer vorbereitet",
+      "growing": "Dein Engagement zeigt sich",
+      "expert": "Immer einsatzbereit"
+    },
+    "operation": {
+      "first": "Bereit zum Dienen",
+      "starting": "Du machst den Unterschied",
+      "growing": "Ein Held in Aktion",
+      "expert": "Unzählige Leben berührt"
+    }
+  },
+  "saving": {
+    "training": "Dokumentiere dein Lernen...",
+    "exercise": "Zeichne deine Vorbereitung auf...",
+    "operation": "Erfasse deinen heroischen Einsatz..."
+  },
+  "emptyStates": {
+    "logbook": {
+      "title": "Deine Geschichte beginnt hier",
+      "message": "Jeder Held hat eine Geschichte. Logge deine erste Aktivität, um deine zu schreiben.",
+      "cta": "Erste Aktivität loggen"
+    },
+    "noResults": {
+      "title": "Keine Treffer",
+      "message": "Versuche deine Suche oder Filter anzupassen"
+    },
+    "profile": {
+      "notLoggedIn": "Werde Teil der Helden",
+      "message": "Verbinde dich mit anderen Einsatzkräften und dokumentiere deine Reise"
+    }
+  },
+  "stats": {
+    "totalContribution": "{{days}} Tage im Dienst",
+    "responsesCount": "{{count}} Einsätze beantwortet",
+    "trainingHours": "{{hours}} Stunden Ausbildung"
+  },
+  "badgeNames": {
+    "first_activity": "Erster Schritt",
+    "getting_started": "Guter Start",
+    "dedicated": "Engagiert",
+    "committed": "Entschlossen",
+    "veteran": "Veteran",
+    "hero": "Wahrer Held",
+    "legend": "Legende",
+    "elite": "Elite",
+    "legendary": "Legendär",
+    "trainer": "Ausbilder",
+    "instructor": "Instruktor",
+    "master_trainer": "Meisterausbilder",
+    "drill_ready": "Übungsbereit",
+    "exercise_pro": "Übungsprofi",
+    "fitness_master": "Fitnessmeister",
+    "first_responder": "Ersthelfer",
+    "seasoned_responder": "Erfahrener Helfer",
+    "operations_hero": "Einsatzheld",
+    "week_warrior": "Wochenkämpfer",
+    "month_master": "Monatsmeister",
+    "consistency_king": "Durchhaltekönig",
+    "time_invested": "Zeit investiert",
+    "dedicated_hours": "Engagierte Stunden",
+    "time_master": "Zeitmeister"
   }
 }
 

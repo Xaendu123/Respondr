@@ -298,7 +298,17 @@ export default function PrivacySettingsScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.header}
         >
-          <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('privacy.title')}</Text>
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text variant="headingLarge" style={{ color: '#FFFFFF', flex: 1 }}>{t('privacy.title')}</Text>
+            <View style={styles.closeButton} />
+          </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -317,7 +327,17 @@ export default function PrivacySettingsScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('privacy.title')}</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text variant="headingLarge" style={{ color: '#FFFFFF', flex: 1 }}>{t('privacy.title')}</Text>
+          <View style={styles.closeButton} />
+        </View>
       </LinearGradient>
 
       <ScrollView 
@@ -555,6 +575,16 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       paddingTop: 60, // Extra padding for status bar + spacing
       paddingBottom: theme.spacing.lg,
       paddingHorizontal: theme.spacing.lg,
+  },
+  headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+  },
+  closeButton: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
   },
   content: {
     flex: 1,

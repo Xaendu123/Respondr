@@ -197,3 +197,16 @@ export interface PaginatedResponse<T> {
   };
 }
 
+/**
+ * Registration request data
+ */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  organization?: string;
+  unitId?: string;
+}
+

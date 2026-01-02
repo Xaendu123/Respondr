@@ -474,8 +474,7 @@ function RootLayoutNav() {
     const inProtectedScreens = segments[0] === 'settings' ||
                                 segments[0] === 'edit-profile' ||
                                 segments[0] === 'badges' ||
-                                segments[0] === 'my-activities' ||
-                                segments[0] === 'profile';
+                                segments[0] === 'my-activities';
 
     // If not authenticated and trying to access protected content
     // BUT: Don't redirect if we're on auth screens (login, register, confirm-email, reset-password, not-found, not-logged-in)
@@ -512,11 +511,11 @@ function RootLayoutNav() {
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="not-found" options={{ headerShown: false }} />
       <Stack.Screen name="not-logged-in" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
-      <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
+      <Stack.Screen name="settings" options={{ presentation: "modal", gestureEnabled: true }} />
+      <Stack.Screen name="edit-profile" options={{ presentation: "modal", gestureEnabled: true }} />
       <Stack.Screen name="badges" options={{ headerShown: false }} />
       <Stack.Screen name="my-activities" options={{ headerShown: false }} />
-      <Stack.Screen name="profile" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy-settings" options={{ presentation: "modal", gestureEnabled: true }} />
     </Stack>
   );
 }

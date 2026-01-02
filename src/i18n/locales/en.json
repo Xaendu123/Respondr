@@ -103,6 +103,7 @@
     "galleryPermissionRequired": "Please grant access to your gallery",
     "cameraPermissionRequired": "Please grant access to your camera",
     "save": "Save Activity",
+    "update": "Update Activity",
     "delete": "Delete Activity",
     "deleteConfirm": "Are you sure you want to delete this activity?",
     "created": "Created",
@@ -427,6 +428,142 @@
     "changeAnytime": "You can change these settings anytime in Privacy Settings.",
     "acceptAndContinue": "Accept & Continue",
     "decline": "Decline"
+  },
+  "greetings": {
+    "earlyMorning": "Early bird",
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "night": "Long night?",
+    "weekend": "Enjoy your weekend",
+    "monday": "Start strong",
+    "friday": "Almost there",
+    "motivation": {
+      "earlyMorning": "Starting early, staying ready",
+      "morning": "Ready to make a difference",
+      "afternoon": "Keep up the great work",
+      "evening": "Another day of service",
+      "night": "Thank you for being there"
+    }
+  },
+  "success": {
+    "activityLogged": "Activity Logged!",
+    "keepItUp": "Keep up the great work",
+    "heroWork": "Your dedication inspires others",
+    "documented": "Another moment of service recorded",
+    "badgeEarned": "Achievement Unlocked!",
+    "keepEarning": "You're on fire! Keep going!"
+  },
+  "milestones": {
+    "first": {
+      "title": "First Step!",
+      "message": "Every hero's journey starts here"
+    },
+    "five": {
+      "title": "Getting Started!",
+      "message": "You're building momentum"
+    },
+    "ten": {
+      "title": "Dedicated!",
+      "message": "Your commitment is showing"
+    },
+    "twentyFive": {
+      "title": "Committed Hero!",
+      "message": "25 activities logged. Impressive dedication!"
+    },
+    "fifty": {
+      "title": "Veteran!",
+      "message": "50 activities! You're an inspiration"
+    },
+    "hundred": {
+      "title": "True Hero!",
+      "message": "100 activities. Your service matters"
+    },
+    "twoFifty": {
+      "title": "Legend!",
+      "message": "250 activities. Extraordinary commitment"
+    },
+    "fiveHundred": {
+      "title": "Elite!",
+      "message": "500 activities. You're one of a kind"
+    },
+    "thousand": {
+      "title": "Legendary!",
+      "message": "1000 activities. A true legend"
+    },
+    "progress": "{{count}} until next milestone",
+    "reached": "Milestone reached!"
+  },
+  "encouragement": {
+    "training": {
+      "first": "Start your learning journey",
+      "starting": "Growing your knowledge",
+      "growing": "Your skills are expanding",
+      "expert": "A true expert in the making"
+    },
+    "exercise": {
+      "first": "Ready to train?",
+      "starting": "Staying sharp and ready",
+      "growing": "Your dedication shows",
+      "expert": "Always prepared, always ready"
+    },
+    "operation": {
+      "first": "Ready to serve",
+      "starting": "Making a difference",
+      "growing": "A hero in action",
+      "expert": "Countless lives touched"
+    }
+  },
+  "saving": {
+    "training": "Documenting your learning...",
+    "exercise": "Recording your preparation...",
+    "operation": "Capturing your heroic work..."
+  },
+  "emptyStates": {
+    "logbook": {
+      "title": "Your Story Begins Here",
+      "message": "Every hero has a story. Log your first activity to start writing yours.",
+      "cta": "Log Your First Activity"
+    },
+    "noResults": {
+      "title": "No Matches Found",
+      "message": "Try adjusting your search or filters"
+    },
+    "profile": {
+      "notLoggedIn": "Join the Heroes",
+      "message": "Connect with fellow first responders and document your journey"
+    }
+  },
+  "stats": {
+    "totalContribution": "{{days}} days of service",
+    "responsesCount": "{{count}} calls answered",
+    "trainingHours": "{{hours}} hours of learning"
+  },
+  "badgeNames": {
+    "first_activity": "First Step",
+    "getting_started": "Getting Started",
+    "dedicated": "Dedicated",
+    "committed": "Committed",
+    "veteran": "Veteran",
+    "hero": "True Hero",
+    "legend": "Legend",
+    "elite": "Elite",
+    "legendary": "Legendary",
+    "trainer": "Trainer",
+    "instructor": "Instructor",
+    "master_trainer": "Master Trainer",
+    "drill_ready": "Drill Ready",
+    "exercise_pro": "Exercise Pro",
+    "fitness_master": "Fitness Master",
+    "first_responder": "First Responder",
+    "seasoned_responder": "Seasoned Responder",
+    "operations_hero": "Operations Hero",
+    "week_warrior": "Week Warrior",
+    "month_master": "Month Master",
+    "consistency_king": "Consistency King",
+    "time_invested": "Time Invested",
+    "dedicated_hours": "Dedicated Hours",
+    "time_master": "Time Master"
   }
 }
 

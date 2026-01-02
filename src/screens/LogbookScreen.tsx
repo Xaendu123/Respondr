@@ -11,12 +11,13 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedAvatar, Button, Card, Text } from '../components/ui';
+import { getActivityTypeColor, getActivityTypeIcon, getActivityTypeTranslationKey } from '../constants/activityTypes';
 import { useActivities } from '../hooks/useActivities';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { useToast } from '../providers/ToastProvider';
-import { Activity } from '../types';
+import { Activity, ActivityType } from '../types';
 import { formatDurationWithTranslation } from '../utils/formatDuration';
 import { hapticError, hapticHeavy, hapticLight, hapticSelect, hapticSuccess, hapticWarning } from '../utils/haptics';
 
@@ -85,7 +86,7 @@ export function LogbookScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isFirstFocus = useRef(true);
   
-  const styles = createStyles(theme);
+  const styles = createStyles(theme, insets);
   
   // Handle manual refresh (pull-to-refresh)
   const handleRefresh = useCallback(async () => {
@@ -114,31 +115,8 @@ export function LogbookScreen() {
     }, [refresh, user])
   );
   
-  const getActivityTypeColor = (type: string) => {
-    switch (type) {
-      case 'training': return theme.colors.info;
-      case 'exercise': return theme.colors.warning;
-      case 'operation': return theme.colors.error;
-      default: return theme.colors.primary;
-    }
-  };
-  
-  const getActivityTypeIcon = (type: string) => {
-    switch (type) {
-      case 'training': return 'book-outline';
-      case 'exercise': return 'fitness-outline';
-      case 'operation': return 'flash-outline';
-      default: return 'flag-outline';
-    }
-  };
-  
-  const getActivityTypeLabel = (type: string) => {
-    switch (type) {
-      case 'training': return t('activity.typeTraining');
-      case 'exercise': return t('activity.typeExercise');
-      case 'operation': return t('activity.typeOperation');
-      default: return type;
-    }
+  const getTypeLabel = (type: ActivityType) => {
+    return t(getActivityTypeTranslationKey(type));
   };
   
   const getCategoryLabel = (category: string | undefined): string => {
@@ -267,7 +245,7 @@ export function LogbookScreen() {
         <View style={styles.headerContent}>
           <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('logbook.title')}</Text>
           <TouchableOpacity
-            onPress={() => router.push('/profile')}
+            onPress={() => router.push('/(tabs)/profile')}
             style={styles.profileButton}
             activeOpacity={0.8}
           >
@@ -440,34 +418,41 @@ export function LogbookScreen() {
       >
         {filteredActivities.length === 0 && activities.length === 0 ? (
           <Card style={styles.emptyCard} glass>
-            <Ionicons name="book-outline" size={64} color={theme.colors.textTertiary} />
-            <Text variant="headingMedium" color="textSecondary" style={styles.emptyTitle}>
-              {t('logbook.empty')}
+            <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+              <Ionicons name="sparkles" size={48} color={theme.colors.primary} />
+            </View>
+            <Text variant="headingMedium" style={styles.emptyTitle}>
+              {t('emptyStates.logbook.title')}
             </Text>
-            <Text variant="body" color="textTertiary" style={styles.emptyDescription}>
-              {t('logbook.emptyDescription')}
+            <Text variant="body" color="textSecondary" style={styles.emptyDescription}>
+              {t('emptyStates.logbook.message')}
             </Text>
-            <Button 
+            <Button
               variant="primary"
-              onPress={() => router.push('/(tabs)/log')}
+              onPress={() => {
+                hapticLight();
+                router.push('/(tabs)/log');
+              }}
               style={styles.logFirstButton}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="rocket-outline" size={20} color="#FFFFFF" />
               <Text variant="body" color="textInverse" style={styles.buttonText}>
-                {t('activity.logNew')}
+                {t('emptyStates.logbook.cta')}
               </Text>
             </Button>
           </Card>
         ) : filteredActivities.length === 0 ? (
           <Card style={styles.emptyCard} glass>
-            <Ionicons name="search-outline" size={64} color={theme.colors.textTertiary} />
-            <Text variant="headingMedium" color="textSecondary" style={styles.emptyTitle}>
-              {t('logbook.noResults')}
+            <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.textTertiary + '15' }]}>
+              <Ionicons name="search" size={48} color={theme.colors.textTertiary} />
+            </View>
+            <Text variant="headingMedium" style={styles.emptyTitle}>
+              {t('emptyStates.noResults.title')}
             </Text>
-            <Text variant="body" color="textTertiary" style={styles.emptyDescription}>
-              {t('logbook.noResultsDescription')}
+            <Text variant="body" color="textSecondary" style={styles.emptyDescription}>
+              {t('emptyStates.noResults.message')}
             </Text>
-            <Button 
+            <Button
               variant="outline"
               onPress={() => {
                 setSearchQuery('');
@@ -484,9 +469,9 @@ export function LogbookScreen() {
         ) : (
           <View style={styles.activitiesList}>
             {filteredActivities.map((activity) => {
-              const typeColor = getActivityTypeColor(activity.type);
+              const typeColor = getActivityTypeColor(activity.type, theme);
               const typeIcon = getActivityTypeIcon(activity.type);
-              const typeLabel = getActivityTypeLabel(activity.type);
+              const typeLabel = getTypeLabel(activity.type);
               const isExpanded = expandedActivityId === activity.id;
               
               return (
@@ -631,15 +616,15 @@ export function LogbookScreen() {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
+function createStyles(theme: ReturnType<typeof useTheme>['theme'], insets: { top: number }) {
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
     header: {
-      paddingTop: 60, // Extra padding for status bar + spacing
-      paddingBottom: theme.spacing.lg,
+      paddingTop: insets.top + 8,
+      paddingBottom: theme.spacing.md,
       paddingHorizontal: theme.spacing.lg,
     },
     headerContent: {
@@ -720,6 +705,14 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       padding: theme.spacing.xxl,
       alignItems: 'center',
       gap: theme.spacing.md,
+    },
+    emptyIconContainer: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing.sm,
     },
     emptyTitle: {
       textAlign: 'center',

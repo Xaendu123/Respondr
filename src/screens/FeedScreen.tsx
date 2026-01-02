@@ -9,20 +9,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedAvatar, Card, Text } from '../components/ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../providers/AuthProvider';
 import { useTheme } from '../providers/ThemeProvider';
+import { getGreeting } from '../utils/greetings';
 
 export function FeedScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const styles = createStyles(theme);
-  
+  const styles = createStyles(theme, insets);
+  const greeting = getGreeting();
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.gradientStart} translucent={true} />
@@ -34,9 +37,14 @@ export function FeedScreen() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('feed.title')}</Text>
+          <View>
+            <Text variant="caption" style={styles.greetingText}>
+              {t(greeting.key)}, {user?.firstName || user?.displayName}
+            </Text>
+            <Text variant="headingLarge" style={{ color: '#FFFFFF' }}>{t('feed.title')}</Text>
+          </View>
           <TouchableOpacity
-            onPress={() => router.push('/profile')}
+            onPress={() => router.push('/(tabs)/profile')}
             style={styles.profileButton}
             activeOpacity={0.8}
           >
@@ -100,15 +108,15 @@ export function FeedScreen() {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
+function createStyles(theme: ReturnType<typeof useTheme>['theme'], insets: { top: number }) {
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
     header: {
-      paddingTop: 60, // Extra padding for status bar + spacing
-      paddingBottom: theme.spacing.lg,
+      paddingTop: insets.top + 8,
+      paddingBottom: theme.spacing.md,
       paddingHorizontal: theme.spacing.lg,
     },
     headerContent: {
@@ -120,6 +128,10 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
       borderRadius: 18,
       borderWidth: 2,
       borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    greetingText: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 2,
     },
     content: {
       flex: 1,

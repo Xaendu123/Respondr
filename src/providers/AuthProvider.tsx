@@ -8,8 +8,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../config/supabase';
 import * as supabaseAuth from '../services/supabase/authService';
-import { UserProfile } from '../types';
-import { RegisterRequest } from '../types/api';
+import { RegisterRequest, UserProfile } from '../types';
 
 interface AuthContextValue {
   user: UserProfile | null;

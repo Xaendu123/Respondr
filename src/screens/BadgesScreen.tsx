@@ -5,8 +5,9 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Text } from '../components/ui';
 import { useBadges } from '../hooks/useBadges';
@@ -17,7 +18,18 @@ import { BadgeLevel } from '../types';
 export function BadgesScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const router = useRouter();
   const { earnedBadges, lockedBadges, allBadges, loading, error, refresh } = useBadges();
+
+  // Translate badge name using translation key pattern
+  const getBadgeName = (badgeName: string): string => {
+    const translationKey = `badgeNames.${badgeName}`;
+    const translated = t(translationKey);
+    // If no translation found, return the raw name formatted nicely
+    return translated === translationKey
+      ? badgeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : translated;
+  };
   
   const styles = createStyles(theme);
   
@@ -47,12 +59,30 @@ export function BadgesScreen() {
     }
   };
   
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerTitles}>
+          <Text variant="headingLarge">{t('badges.title')}</Text>
+          <Text variant="caption" color="textSecondary">
+            {earnedBadges.length} {t('badges.of')} {allBadges.length} {t('badges.earned')}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
   if (loading && allBadges.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text variant="headingLarge">{t('badges.title')}</Text>
-        </View>
+        {renderHeader()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -63,9 +93,7 @@ export function BadgesScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text variant="headingLarge">{t('badges.title')}</Text>
-        </View>
+        {renderHeader()}
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
           <Text variant="body" color="error" style={{ marginTop: theme.spacing.md }}>
@@ -78,13 +106,7 @@ export function BadgesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text variant="headingLarge">{t('badges.title')}</Text>
-        <Text variant="caption" color="textSecondary">
-          {earnedBadges.length} {t('badges.of')} {allBadges.length} {t('badges.earned')}
-        </Text>
-      </View>
+      {renderHeader()}
       
       <ScrollView
         style={styles.scrollView}
@@ -125,7 +147,7 @@ export function BadgesScreen() {
                     </View>
                     
                     <Text variant="label" style={styles.badgeName} numberOfLines={2}>
-                      {badge.name}
+                      {getBadgeName(badge.name)}
                     </Text>
                     
                     <View
@@ -175,7 +197,7 @@ export function BadgesScreen() {
                     </View>
                     
                     <Text variant="label" style={styles.badgeName} numberOfLines={2} color="textSecondary">
-                      {badge.name}
+                      {getBadgeName(badge.name)}
                     </Text>
                     
                     {badge.progress !== undefined && (
@@ -215,11 +237,22 @@ function createStyles(theme: ReturnType<typeof useTheme>['theme']) {
     },
     header: {
       paddingHorizontal: theme.spacing.lg,
-      paddingTop: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.md,
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.divider,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+    },
+    backButton: {
+      padding: theme.spacing.xs,
+    },
+    headerTitles: {
+      flex: 1,
     },
     scrollView: {
       flex: 1,
